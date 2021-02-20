@@ -6,9 +6,9 @@ object ClassDiagramPrinter {
 
   private val SomewhatSensibleName = """[\p{Alnum}_-]+""".r
 
-  def print(elements: List[ClassDiagramElement]): String = {
+  def print(elements: Seq[ClassDiagramElement]): String = {
     @tailrec
-    def loop(remaining: List[ClassDiagramElement], acc: StringBuilder): String =
+    def loop(remaining: Seq[ClassDiagramElement], acc: StringBuilder): String =
       remaining match {
         case Nil => acc.toString
         case head :: tail =>
@@ -29,6 +29,6 @@ object ClassDiagramPrinter {
   }
 
   private def quoteName(name: String): String =
-    if (SomewhatSensibleName.matches(name)) name
+    if (SomewhatSensibleName.pattern.matcher(name).matches()) name
     else s""""$name""""
 }

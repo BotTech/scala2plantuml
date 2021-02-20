@@ -1,1 +1,3 @@
-package nz.co.bottech.scala2plantuml case class ClassSyntax ()
+package nz.co.bottech.scala2plantuml
+
+final case class ClassSyntax(name: String, isAbstract: Boolean)

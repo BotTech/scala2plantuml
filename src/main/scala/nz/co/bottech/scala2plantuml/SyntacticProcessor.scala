@@ -1,45 +1,25 @@
 package nz.co.bottech.scala2plantuml
 
-import org.slf4j.LoggerFactory
-
 import java.io.InputStream
-import scala.meta.internal.semanticdb._
-import scala.util.Try
+import java.nio.charset.{Charset, StandardCharsets}
+import scala.meta._
 
-object SemanticProcessor {
+object SyntacticProcessor {
 
-  private val logger = LoggerFactory.getLogger(classOf[SemanticProcessor.type])
-
-  def fromInputStream(inputStream: InputStream): Try[String] = {
-    Try {
-      val documents = TextDocuments.parseFrom(inputStream).documents
-      val elements = documents.flatMap(processDocument)
-      ClassDiagramPrinter.print(elements)
-    }
+  def processInputStream(
+      inputStream: InputStream,
+      charset: Charset = StandardCharsets.UTF_8
+    ): Either[String, SourceSyntax] = {
+    val input = Input.Stream(inputStream, charset)
+    processInput(input)
   }
 
-  private def processDocument(document: TextDocument): Seq[ClassDiagramElement] = {
-    document.symbols.flatMap { symbol =>
-      logger.trace(
-        s"""SymbolInformation(
-           |  class: ${symbol.getClass}
-           |  language: ${symbol.language}
-           |  symbol: ${symbol.symbol}
-           |  kind: ${symbol.kind}
-           |  display_name: ${symbol.displayName}
-           |  signature: ${symbol.signature}
-           |)""".stripMargin)
-      symbol.signature match {
-        case Signature.Empty => ???
-        case value: ValueSignature => ???
-        case clazz: ClassSignature => processClass(clazz)
-        case method: MethodSignature => ???
-        case typ: TypeSignature => ???
-      }
-    }
-  }
+  private def processInput(input: Input): Either[String, SourceSyntax] =
+    input.parse[Source].toEither.map(processSource).left.map(_.toString)
 
-  private def processClass(clazz: ClassSignature): List[ClassDiagramElement] = {
-    ???
+  private def processSource(source: Source): SourceSyntax = {
+    val traverser = new SourceTraverser()
+    traverser(source)
+    traverser.result()
   }
 }

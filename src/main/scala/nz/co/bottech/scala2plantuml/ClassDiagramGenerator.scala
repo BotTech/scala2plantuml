@@ -1,15 +1,17 @@
 package nz.co.bottech.scala2plantuml
 
-import scala.meta._
+import java.io.InputStream
+import java.nio.charset.{Charset, StandardCharsets}
 
 object ClassDiagramGenerator {
 
-  def generate(scalaCode: String): Either[String, String] =
-    scalaCode.parse[Source].toEither.map(sourceToDiagram).left.map(_.toString)
-
-  private def sourceToDiagram(source: Source): String = {
-    val traverser = new SourceTraverser()
-    traverser(source)
-    ClassDiagramPrinter.print(traverser.result())
-  }
+  def fromInputStream(
+      source: InputStream,
+      semanticDb: InputStream,
+      charset: Charset = StandardCharsets.UTF_8
+    ): Either[String, String] =
+    for {
+      syntactic <- SyntacticProcessor.processInputStream(source, charset)
+      semantic  <- SemanticProcessor.processInputStream(semanticDb)
+    } yield ClassDiagramPrinter.print(syntactic ++ semantic)
 }

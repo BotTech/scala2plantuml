@@ -3,23 +3,22 @@ package nz.co.bottech.scala2plantuml
 import org.slf4j.LoggerFactory
 
 import java.io.InputStream
-import scala.meta.internal.semanticdb.{ClassSignature, MethodSignature, Signature, TextDocument, TextDocuments, TypeSignature, ValueSignature}
+import scala.meta.internal.semanticdb._
 import scala.util.Try
 
-object ClassDiagramGenerator {
+object SemanticProcessor {
 
-  private val logger = LoggerFactory.getLogger(classOf[ClassDiagramGenerator.type])
+  private val logger = LoggerFactory.getLogger(classOf[SemanticProcessor.type])
 
-  def fromInputStream(inputStream: InputStream): Try[String] = {
+  def processInputStream(inputStream: InputStream): Either[String, List[ClassDiagramElement]] = {
     Try {
-      val documents = TextDocuments.parseFrom(inputStream).documents
-      val elements = documents.flatMap(processDocument)
-      ClassDiagramPrinter.print(elements)
-    }
+      val documents = TextDocuments.parseFrom(inputStream).documents.toList
+      documents.flatMap(processDocument)
+    }.toEither.left.map(_.getMessage)
   }
 
-  private def processDocument(document: TextDocument): Seq[ClassDiagramElement] = {
-    document.symbols.flatMap { symbol =>
+  private def processDocument(document: TextDocument): List[ClassDiagramElement] = {
+    document.symbols.toList.flatMap { symbol =>
       logger.trace(
         s"""SymbolInformation(
            |  class: ${symbol.getClass}

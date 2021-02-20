@@ -1,16 +1,16 @@
 name := "scala2plantuml"
-scalaVersion := "2.12.13"
+scalaVersion := "2.13.4"
+// TODO: Add tpolecat plugin.
+scalacOptions += "-Ywarn-unused"
 libraryDependencies ++= List(
-  // TODO: Where is version 4.4.9 for Scala 2.13?
-//  "org.scalameta" %% "semanticdb" % "4.1.6",
+  "org.scalameta" %% "scalameta" % semanticdbVersion.value,
+  "org.scalameta" %% "trees" % semanticdbVersion.value,
   "org.slf4j" % "slf4j-api" % "1.7.30",
   "ch.qos.logback" % "logback-classic" % "1.2.3" % Test,
   "ch.qos.logback" % "logback-core" % "1.2.3" % Test,
-  "com.lihaoyi" %% "utest" % "0.7.7" % Test,
-//  "org.scala-lang" % "scala-compiler" % scalaVersion.value % Test,
-//  "org.scalameta" % "semanticdb-scalac" % "4.4.9" % Test cross CrossVersion.full
+  "com.lihaoyi" %% "utest" % "0.7.7" % Test
 )
 testFrameworks += new TestFramework("utest.runner.Framework")
-addCompilerPlugin(scalafixSemanticdb)
 semanticdbEnabled := true
-semanticdbVersion := scalafixSemanticdb.revision
+semanticdbVersion := "4.4.9"
+Test / fullClasspath += (Test / semanticdbTargetRoot).value
