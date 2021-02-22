@@ -1,3 +1,3 @@
 package nz.co.bottech.scala2plantuml.examples.abstractclass
 
-class ConcreteClass
+sealed abstract class SealedAbstractClass

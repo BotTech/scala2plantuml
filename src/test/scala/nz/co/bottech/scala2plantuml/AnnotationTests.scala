@@ -1,53 +1,36 @@
 package nz.co.bottech.scala2plantuml
 
-import utest.{TestSuite, Tests, assert, test}
+import utest._
 
-object AnnotationTests extends TestSuite {
+object AnnotationTests extends TestSuite with GeneratorTest {
+
+  override protected val exampleDir: String = "annotation"
 
   val tests: Tests = Tests {
-//    test("annotation") {
-//      val diagram = ClassDiagramGenerator.generate(
-//        """import scala.annotation.Annotation
-//          |class Foo extends Annotation""".stripMargin
-//      )
-//      assert(diagram == Right("""annotation Foo"""))
-//    }
-//    test("static annotation") {
-//      val diagram = ClassDiagramGenerator.generate(
-//        """import scala.annotation.Annotation
-//          |class Foo extends Annotation""".stripMargin
-//      )
-//      assert(diagram == Right("""annotation Foo"""))
-//    }
+    test("annotation") {
+      success("SimpleAnnotation", """annotation SimpleAnnotation""")
+    }
+    test("extended annotation") {
+      success("ExtendedAnnotation", """annotation ExtendedAnnotation""")
+    }
+    test("static annotation") {
+      success("MyStaticAnnotation", """annotation MyStaticAnnotation""")
+    }
+    test("class annotation") {
+      success("MyClassAnnotation", """annotation MyClassAnnotation""")
+    }
+    test("trait annotation") {
+      success("TraitAnnotation", """annotation TraitAnnotation""")
+    }
+    test("case class annotation") {
+      success("CaseClassAnnotation", """annotation CaseClassAnnotation""")
+    }
+    test("object annotation") {
+      success("ObjectAnnotation", """annotation ObjectAnnotation""")
+    }
+    // FIXME
 //    test("class annotation") {
-//      val diagram = ClassDiagramGenerator.generate(
-//        """import scala.annotation.StaticAnnotation
-//          |class Foo extends Annotation""".stripMargin
-//      )
-//      assert(diagram == Right("""annotation Foo"""))
-//    }
-//    test("extended annotation") {
-//      val diagram = ClassDiagramGenerator.generate(
-//        """import scala.annotation.Annotation
-//          |class Foo extends Annotation
-//          |class Bar extends Foo""".stripMargin
-//      )
-//      val lastLine = diagram.map(_.linesIterator.toList.reverse.headOption)
-//      assert(lastLine == Right(Option("""annotation Bar""")))
-//    }
-//    test("annotation trait") {
-//      val diagram = ClassDiagramGenerator.generate(
-//        """import scala.annotation.Annotation
-//          |trait Foo extends Annotation""".stripMargin
-//      )
-//      assert(diagram == Right("""annotation Foo"""))
-//    }
-//    test("annotation case class") {
-//      val diagram = ClassDiagramGenerator.generate(
-//        """import scala.annotation.Annotation
-//          |case class Foo extends Annotation""".stripMargin
-//      )
-//      assert(diagram == Right("""annotation Foo"""))
+//      success("MyJavaAnnotation", """annotation MyJavaAnnotation""")
 //    }
   }
 }

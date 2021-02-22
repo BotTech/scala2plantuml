@@ -1,29 +1,26 @@
 package nz.co.bottech.scala2plantuml
 
-import utest.{TestSuite, Tests, assert, test}
+import utest.{test, TestSuite, Tests}
 
-object NameTests extends TestSuite {
+object NameTests extends TestSuite with GeneratorTest {
+
+  override protected val exampleDir: String = "name"
 
   val tests: Tests = Tests {
-//    test("alphanumeric") {
-//      val diagram = ClassDiagramGenerator.generate("""class Foo123""")
-//      assert(diagram == Right("""class Foo123"""))
-//    }
-//    test("underscore") {
-//      val diagram = ClassDiagramGenerator.generate("""class Foo_123""")
-//      assert(diagram == Right("""class Foo_123"""))
-//    }
-//    test("hyphen") {
-//      val diagram = ClassDiagramGenerator.generate("""class `Foo-123`""")
-//      assert(diagram == Right("""class Foo-123"""))
-//    }
-//    test("space") {
-//      val diagram = ClassDiagramGenerator.generate("""class `Foo 123`""")
-//      assert(diagram == Right("""class "Foo 123""""))
-//    }
-//    test("symbols") {
-//      val diagram = ClassDiagramGenerator.generate("""class `Foo!@#$123`""")
-//      assert(diagram == Right("""class "Foo!@#$123""""))
-//    }
+    test("alphanumeric") {
+      success("AlphaNumericName", """class Foo123""")
+    }
+    test("underscore") {
+      success("NameWithUnderscore", """class Foo_123""")
+    }
+    test("hyphen") {
+      success("NameWithHyphen", """class Foo-123""")
+    }
+    test("space") {
+      success("NameWithSpace", """class "Foo 123"""")
+    }
+    test("symbols") {
+      success("NameWithSymbols", """class "Foo!@#$123"""")
+    }
   }
 }

@@ -1,29 +1,17 @@
 package nz.co.bottech.scala2plantuml
 
-import utest.{assert, test, TestSuite, Tests}
+import utest.{test, TestSuite, Tests}
 
-import scala.util.{Success, Using}
+object AbstractClassTests extends TestSuite with GeneratorTest {
 
-object AbstractClassTests extends TestSuite {
-
-  private def testSemanticdb(name: String) =
-    s"META-INF/semanticdb/src/test/scala/nz/co/bottech/scala2plantuml/examples/abstractclass/$name.scala.semanticdb"
+  override protected val exampleDir: String = "abstractclass"
 
   val tests: Tests = Tests {
-    test("class") {
-      val path = testSemanticdb("ConcreteClass")
-      val result = Using(getClass.getClassLoader.getResourceAsStream(path))(
-        ClassDiagramGenerator.fromInputStream
-      )
-      assert(result == Success(Right("""class Foo""")))
-    }
     test("abstract class") {
-      val path = testSemanticdb("AbstractClass")
-      val result = Using(getClass.getClassLoader.getResourceAsStream(path))(
-        ClassDiagramGenerator.fromInputStream
-      )
-      assert(result == Success(Right("""abstract class Foo""")))
+      success("AbstractClass", """abstract class AbstractClass""")
     }
-    // TODO: Add tests with other modifiers
+    test("sealed abstract class") {
+      success("SealedAbstractClass", """abstract class SealedAbstractClass""")
+    }
   }
 }

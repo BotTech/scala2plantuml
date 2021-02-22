@@ -3,7 +3,6 @@ scalaVersion := "2.13.4"
 // TODO: Add tpolecat plugin.
 scalacOptions += "-Ywarn-unused"
 libraryDependencies ++= List(
-  "org.scalameta" %% "scalameta" % semanticdbVersion.value,
   "org.scalameta" %% "trees" % semanticdbVersion.value,
   "org.slf4j" % "slf4j-api" % "1.7.30",
   "ch.qos.logback" % "logback-classic" % "1.2.3" % Test,
