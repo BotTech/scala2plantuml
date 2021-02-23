@@ -1,7 +1,11 @@
 name := "scala2plantuml"
+
 scalaVersion := "2.13.4"
-// TODO: Add tpolecat plugin.
-scalacOptions += "-Ywarn-unused"
+
+// Required for testing.
+semanticdbEnabled := true
+semanticdbVersion := "4.4.9"
+
 libraryDependencies ++= List(
   "org.scalameta" %% "scalameta" % semanticdbVersion.value,
   "org.scalameta" %% "trees" % semanticdbVersion.value,
@@ -10,7 +14,6 @@ libraryDependencies ++= List(
   "ch.qos.logback" % "logback-core" % "1.2.3" % Test,
   "com.lihaoyi" %% "utest" % "0.7.7" % Test
 )
+
 testFrameworks += new TestFramework("utest.runner.Framework")
-semanticdbEnabled := true
-semanticdbVersion := "4.4.9"
 Test / fullClasspath += (Test / semanticdbTargetRoot).value

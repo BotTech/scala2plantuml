@@ -27,7 +27,7 @@ class LazySymbolTable(loader: SemanticDbLoader) extends SymbolTable {
             val symbols = textDocuments.flatMap(_.symbols).map(info => info.symbol -> info)
             symbolCache.addAll(symbols)
           }
-          loaded.add(symbol)
+          val _ = loaded.add(symbol)
         }
       }
 }

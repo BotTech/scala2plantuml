@@ -16,3 +16,7 @@ final case class UmlAnnotation(displayName: String, fullName: String, isObject: 
 final case class UmlEnum(displayName: String, fullName: String, isObject: Boolean) extends ClassDiagramElement
 
 final case class UmlClass(displayName: String, fullName: String, isObject: Boolean) extends ClassDiagramElement
+
+final case class UmlInterface(displayName: String, fullName: String) extends ClassDiagramElement {
+  override def isObject: Boolean = false
+}

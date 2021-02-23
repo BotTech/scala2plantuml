@@ -51,10 +51,12 @@ object ClassDiagramPrinter {
         s"abstract class ${quoteName(name)}"
       case UmlAnnotation(name, _, _) =>
         s"annotation ${quoteName(name)}"
-      case UmlEnum(name, _, _) =>
-        s"enum ${quoteName(name)}"
       case UmlClass(name, _, _) =>
         s"class ${quoteName(name)}"
+      case UmlEnum(name, _, _) =>
+        s"enum ${quoteName(name)}"
+      case UmlInterface(name, _) =>
+        s"interface ${quoteName(name)}"
     }
 
   private def quoteName(name: String): String =

@@ -20,7 +20,8 @@ object AnnotationTests extends TestSuite with GeneratorTest {
       success("MyClassAnnotation", """annotation MyClassAnnotation""")
     }
     test("trait annotation") {
-      success("TraitAnnotation", """annotation TraitAnnotation""")
+      // Interface trumps annotation.
+      success("TraitAnnotation", """interface TraitAnnotation""")
     }
     test("case class annotation") {
       success("CaseClassAnnotation", """annotation CaseClassAnnotation""")

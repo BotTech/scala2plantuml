@@ -1,6 +1,6 @@
 package nz.co.bottech.scala2plantuml
 
-import utest.{TestSuite, Tests, test}
+import utest.{test, TestSuite, Tests}
 
 object ClassTests extends TestSuite with GeneratorTest {
 

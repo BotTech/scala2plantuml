@@ -41,7 +41,9 @@ object SemanticProcessor {
     ): ClassDiagramElement = {
     val displayName = symbolInformation.displayName
     val fullName    = symbolFullName(symbolInformation.symbol)
-    if (isAnnotation(symbolInformation, index))
+    if (isTrait(symbolInformation))
+      UmlInterface(displayName, fullName)
+    else if (isAnnotation(symbolInformation, index))
       UmlAnnotation(displayName, fullName, isObject = isObject(symbolInformation))
     else if (isEnum(symbolInformation, index))
       UmlEnum(displayName, fullName, isObject = isObject(symbolInformation))
@@ -75,4 +77,7 @@ object SemanticProcessor {
 
   private def isObject(symbolInformation: SymbolInformation): Boolean =
     symbolInformation.kind == SymbolInformation.Kind.OBJECT
+
+  private def isTrait(symbolInformation: SymbolInformation): Boolean =
+    symbolInformation.kind == SymbolInformation.Kind.TRAIT
 }
