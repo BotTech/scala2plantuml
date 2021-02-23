@@ -2,28 +2,22 @@ package nz.co.bottech.scala2plantuml
 
 import utest.assert
 
-import java.io.{IOException, InputStream}
-import scala.util.{Try, Using}
-
 trait GeneratorTest {
 
   protected val exampleDir: String
 
-  private def testSemanticdb(name: String) =
-    s"META-INF/semanticdb/src/test/scala/nz/co/bottech/scala2plantuml/examples/$exampleDir/$name.scala.semanticdb"
+  private def globalSymbol(symbol: String) =
+    s"nz/co/bottech/scala2plantuml/examples/$exampleDir/$symbol#"
 
   protected def success(name: String, diagram: String): Unit = {
-    val result = generate(name).get
+    val result = generateFromTopLevel(name)
     assert(result == Right(diagram))
   }
 
-  protected def generate(name: String): Try[Either[String, String]] = {
-    val path = testSemanticdb(name)
-    Using(getResource(path))(ClassDiagramGenerator.fromInputStream)
-  }
-
-  private def getResource(path: String): InputStream =
-    Option(getClass.getClassLoader.getResourceAsStream(path)).getOrElse {
-      throw new IOException(s"Resource not found: $path")
-    }
+  protected def generateFromTopLevel(symbol: String): Either[String, String] =
+    ClassDiagramGenerator.basedOn(
+      globalSymbol(symbol),
+      List("META-INF/semanticdb/src/test/scala"),
+      this.getClass.getClassLoader
+    )
 }

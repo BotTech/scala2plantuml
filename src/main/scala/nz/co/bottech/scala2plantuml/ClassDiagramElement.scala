@@ -1,9 +1,16 @@
 package nz.co.bottech.scala2plantuml
 
-sealed trait ClassDiagramElement
+sealed trait ClassDiagramElement {
+  def displayName: String
+  def fullName: String
 
-final case class AbstractClass(displayName: String) extends ClassDiagramElement
+  def isObject: Boolean
+}
 
-final case class Annotation(displayName: String) extends ClassDiagramElement
+final case class AbstractClass(displayName: String, fullName: String) extends ClassDiagramElement {
+  override def isObject: Boolean = false
+}
 
-final case class ConcreteClass(displayName: String) extends ClassDiagramElement
+final case class Annotation(displayName: String, fullName: String, isObject: Boolean) extends ClassDiagramElement
+
+final case class ConcreteClass(displayName: String, fullName: String, isObject: Boolean) extends ClassDiagramElement

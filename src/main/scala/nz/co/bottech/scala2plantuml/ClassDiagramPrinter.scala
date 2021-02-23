@@ -6,27 +6,54 @@ object ClassDiagramPrinter {
 
   private val SomewhatSensibleName = """[\p{Alnum}_-]+""".r
 
-  def print(elements: Seq[ClassDiagramElement]): String = {
+  final case class Options(
+      namingStrategy: NamingStrategy,
+      combineCompanionObject: Boolean)
+
+  object Options {
+
+    val default: Options = Options(
+      namingStrategy = RemoveCommonPrefix,
+      combineCompanionObject = true
+    )
+  }
+
+  sealed trait NamingStrategy
+  case object FullQualified      extends NamingStrategy
+  case object RemoveCommonPrefix extends NamingStrategy
+
+  def print(elements: Seq[ClassDiagramElement], options: Options): String = {
     @tailrec
     def loop(remaining: Seq[ClassDiagramElement], acc: StringBuilder): String =
       remaining match {
-        case Nil => acc.toString
-        case head :: tail =>
-          head match {
-            case AbstractClass(name) =>
-              acc.append("abstract class ")
-              acc.append(quoteName(name))
-            case Annotation(name) =>
-              acc.append("annotation ")
-              acc.append(quoteName(name))
-            case ConcreteClass(name) =>
-              acc.append("class ")
-              acc.append(quoteName(name))
-          }
+        case head +: tail =>
+          acc.append('\n')
+          acc.append(printElement(head))
           loop(tail, acc)
+        case Seq() => acc.toString
       }
-    loop(elements, new StringBuilder)
+    val updatedElements = applyOptions(elements, options)
+    val builder         = new StringBuilder
+    updatedElements.headOption.map(element => builder.append(printElement(element)))
+    loop(updatedElements.drop(1), builder)
   }
+
+  private def applyOptions(elements: Seq[ClassDiagramElement], options: Options): Seq[ClassDiagramElement] =
+    if (options.combineCompanionObject) {
+      val nonObjectNames = elements.filterNot(_.isObject).map(_.fullName).toSet
+      elements.filterNot(element => element.isObject && nonObjectNames.contains(element.fullName))
+    } else
+      elements
+
+  private def printElement(element: ClassDiagramElement): String =
+    element match {
+      case AbstractClass(name, _) =>
+        s"abstract class ${quoteName(name)}"
+      case Annotation(name, _, _) =>
+        s"annotation ${quoteName(name)}"
+      case ConcreteClass(name, _, _) =>
+        s"class ${quoteName(name)}"
+    }
 
   private def quoteName(name: String): String =
     if (SomewhatSensibleName.pattern.matcher(name).matches()) name
