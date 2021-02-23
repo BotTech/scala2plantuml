@@ -2,7 +2,7 @@ package nz.co.bottech.scala2plantuml
 
 import utest.{test, TestSuite, Tests}
 
-object InterfaceTests extends TestSuite with GeneratorTest {
+object InterfaceTests extends TestSuite with ClassDiagramTest {
 
   override protected val exampleDir: String = "interfaces"
 

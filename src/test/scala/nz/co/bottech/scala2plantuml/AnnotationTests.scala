@@ -2,7 +2,7 @@ package nz.co.bottech.scala2plantuml
 
 import utest._
 
-object AnnotationTests extends TestSuite with GeneratorTest {
+object AnnotationTests extends TestSuite with ClassDiagramTest {
 
   override protected val exampleDir: String = "annotation"
 

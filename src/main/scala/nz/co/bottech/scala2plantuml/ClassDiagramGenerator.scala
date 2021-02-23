@@ -1,7 +1,5 @@
 package nz.co.bottech.scala2plantuml
 
-import nz.co.bottech.scala2plantuml.ClassDiagramPrinter.Options
-
 import scala.meta.internal.semanticdb.TextDocument
 import scala.meta.internal.symtab.{AggregateSymbolTable, GlobalSymbolTable, LocalSymbolTable}
 import scala.meta.io.Classpath
@@ -12,7 +10,7 @@ object ClassDiagramGenerator {
       symbol: String,
       prefixes: Seq[String],
       classloader: ClassLoader
-    ): Either[String, String] = {
+    ): Either[String, Seq[ClassDiagramElement]] = {
     val loader = new SemanticDbLoader(prefixes, classloader)
     loader
       .load(symbol)
@@ -20,9 +18,6 @@ object ClassDiagramGenerator {
         val symbolTable = aggregateSymbolTable(textDocuments, loader)
         val index       = new TypeIndex(symbolTable)
         textDocuments.flatMap(SemanticProcessor.processDocument(_, index))
-      }
-      .map { elements =>
-        ClassDiagramPrinter.print(elements, Options.default)
       }
   }
 

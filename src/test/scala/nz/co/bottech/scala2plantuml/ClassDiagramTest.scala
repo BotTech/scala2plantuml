@@ -1,8 +1,9 @@
 package nz.co.bottech.scala2plantuml
 
+import nz.co.bottech.scala2plantuml.ClassDiagramPrinter.Options
 import utest.assert
 
-trait GeneratorTest {
+trait ClassDiagramTest {
 
   protected val exampleDir: String
 
@@ -15,9 +16,13 @@ trait GeneratorTest {
   }
 
   protected def generateFromTopLevel(symbol: String): Either[String, String] =
-    ClassDiagramGenerator.basedOn(
-      globalSymbol(symbol),
-      List("META-INF/semanticdb/src/test/scala"),
-      this.getClass.getClassLoader
-    )
+    ClassDiagramGenerator
+      .basedOn(
+        globalSymbol(symbol),
+        List("META-INF/semanticdb/src/test/scala"),
+        this.getClass.getClassLoader
+      )
+      .map { elements =>
+        ClassDiagramPrinter.printSnippet(elements, Options.default)
+      }
 }

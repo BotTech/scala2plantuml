@@ -22,7 +22,12 @@ object ClassDiagramPrinter {
   case object FullQualified      extends NamingStrategy
   case object RemoveCommonPrefix extends NamingStrategy
 
-  def print(elements: Seq[ClassDiagramElement], options: Options): String = {
+  def print(elements: Seq[ClassDiagramElement], options: Options): String =
+    s"""@startuml
+       |${printSnippet(elements, options)}
+       |@enduml""".stripMargin
+
+  def printSnippet(elements: Seq[ClassDiagramElement], options: Options): String = {
     @tailrec
     def loop(remaining: Seq[ClassDiagramElement], acc: StringBuilder): String =
       remaining match {
