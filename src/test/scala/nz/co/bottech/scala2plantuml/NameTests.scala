@@ -1,5 +1,6 @@
 package nz.co.bottech.scala2plantuml
 
+import nz.co.bottech.scala2plantuml.ClassDiagramPrinter.Options
 import utest.{test, TestSuite, Tests}
 
 object NameTests extends TestSuite with ClassDiagramTest {
@@ -22,5 +23,18 @@ object NameTests extends TestSuite with ClassDiagramTest {
     test("symbols") {
       success("NameWithSymbols", """class "Foo!@#$123"""")
     }
+    test("fully qualified") {
+      success(
+        "AlphaNumericName",
+        """class nz.co.bottech.scala2plantuml.examples.name.Foo123""",
+        Options.default.copy(namingStrategy = Options.FullyQualified)
+      )
+    }
   }
 }
+
+/**
+ * @startuml
+ * class nz.co.bottech.scala2plantuml.Foo123
+ * @enduml
+ */

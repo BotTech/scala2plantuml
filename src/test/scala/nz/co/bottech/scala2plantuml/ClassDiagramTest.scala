@@ -10,12 +10,12 @@ trait ClassDiagramTest {
   private def globalSymbol(symbol: String) =
     s"nz/co/bottech/scala2plantuml/examples/$exampleDir/$symbol#"
 
-  protected def success(name: String, diagram: String): Unit = {
-    val result = generateFromTopLevel(name)
+  protected def success(name: String, diagram: String, options: Options = Options.default): Unit = {
+    val result = generateFromTopLevel(name, options)
     assert(result == Right(diagram))
   }
 
-  protected def generateFromTopLevel(symbol: String): Either[String, String] =
+  protected def generateFromTopLevel(symbol: String, options: Options): Either[String, String] =
     ClassDiagramGenerator
       .basedOn(
         globalSymbol(symbol),
@@ -23,6 +23,6 @@ trait ClassDiagramTest {
         this.getClass.getClassLoader
       )
       .map { elements =>
-        ClassDiagramPrinter.printSnippet(elements, Options.default)
+        ClassDiagramPrinter.printSnippet(elements, options)
       }
 }
