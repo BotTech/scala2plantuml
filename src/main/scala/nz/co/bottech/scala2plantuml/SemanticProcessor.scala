@@ -1,28 +1,26 @@
 package nz.co.bottech.scala2plantuml
 
-import nz.co.bottech.scala2plantuml.{Annotation => UmlAnnotation}
 import org.slf4j.LoggerFactory
 
 import scala.meta.internal.semanticdb.Scala._
 import scala.meta.internal.semanticdb._
-import scala.meta.internal.symtab.SymbolTable
 
 object SemanticProcessor {
 
   private val logger = LoggerFactory.getLogger(classOf[SemanticProcessor.type])
 
-  def processDocument(document: TextDocument, symbolTable: SymbolTable): List[ClassDiagramElement] = {
+  def processDocument(document: TextDocument, index: TypeIndex): List[ClassDiagramElement] = {
     val symbols = document.symbols.toList
-    processSymbols(symbols, symbolTable)
+    processSymbols(symbols, index)
   }
 
-  private def processSymbols(symbols: List[SymbolInformation], symbolTable: SymbolTable): List[ClassDiagramElement] =
+  private def processSymbols(symbols: List[SymbolInformation], index: TypeIndex): List[ClassDiagramElement] =
     symbols.flatMap { symbol =>
       logger.trace(symbolInformationString(symbol))
       symbol.signature match {
         case Signature.Empty    => None
         case _: ValueSignature  => None
-        case _: ClassSignature  => Some(processClass(symbol, symbolTable))
+        case _: ClassSignature  => Some(processClass(symbol, index))
         case _: MethodSignature => None
         case _: TypeSignature   => None
       }
@@ -39,26 +37,33 @@ object SemanticProcessor {
 
   private def processClass(
       symbolInformation: SymbolInformation,
-      symbolTable: SymbolTable
+      index: TypeIndex
     ): ClassDiagramElement = {
     val displayName = symbolInformation.displayName
     val fullName    = symbolFullName(symbolInformation.symbol)
-    if (isAnnotation(symbolInformation, symbolTable))
+    if (isAnnotation(symbolInformation, index))
       UmlAnnotation(displayName, fullName, isObject = isObject(symbolInformation))
-    else if (isAbstract(symbolInformation)) AbstractClass(displayName, fullName)
-    else ConcreteClass(displayName, fullName, isObject = isObject(symbolInformation))
+    else if (isEnum(symbolInformation, index))
+      UmlEnum(displayName, fullName, isObject = isObject(symbolInformation))
+    else if (isAbstract(symbolInformation))
+      UmlAbstractClass(displayName, fullName)
+    else
+      UmlClass(displayName, fullName, isObject = isObject(symbolInformation))
   }
 
   private def symbolFullName(symbol: String): String =
     if (symbol.isGlobal) symbol.replace('/', '.').dropRight(1)
     else symbol.replace('/', '.')
 
-  private def isAnnotation(symbolInformation: SymbolInformation, symbolTable: SymbolTable): Boolean =
-    subTypeOf(symbolInformation, "scala/annotation/Annotation#", symbolTable)
+  private def isAnnotation(symbolInformation: SymbolInformation, index: TypeIndex): Boolean =
+    subTypeOf(symbolInformation, "scala/annotation/Annotation#", index)
 
-  private def subTypeOf(symbolInformation: SymbolInformation, parent: String, symbolTable: SymbolTable): Boolean = {
-    // TODO: Do we need to cache the type hierarchy? YES!
-    val hierarchy = TypeHierarchy.create(symbolInformation, symbolTable)
+  private def isEnum(symbolInformation: SymbolInformation, index: TypeIndex): Boolean =
+    subTypeOf(symbolInformation, "scala/Enumeration#", index) ||
+      subTypeOf(symbolInformation, "java/lang/Enum#", index)
+
+  private def subTypeOf(symbolInformation: SymbolInformation, parent: String, index: TypeIndex): Boolean = {
+    val hierarchy = index.getHierarchy(symbolInformation)
     hierarchy.subTypeOf(parent)
   }
 

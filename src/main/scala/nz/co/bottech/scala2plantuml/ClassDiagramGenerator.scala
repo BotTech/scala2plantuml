@@ -18,7 +18,8 @@ object ClassDiagramGenerator {
       .load(symbol)
       .map { textDocuments =>
         val symbolTable = aggregateSymbolTable(textDocuments, loader)
-        textDocuments.flatMap(SemanticProcessor.processDocument(_, symbolTable))
+        val index       = new TypeIndex(symbolTable)
+        textDocuments.flatMap(SemanticProcessor.processDocument(_, index))
       }
       .map { elements =>
         ClassDiagramPrinter.print(elements, Options.default)
@@ -30,7 +31,7 @@ object ClassDiagramGenerator {
       List(
         LocalSymbolTable(textDocuments.flatMap(_.symbols)),
         new LazySymbolTable(loader),
-        GlobalSymbolTable(Classpath(Nil)),
+        GlobalSymbolTable(Classpath(Nil))
       )
     )
 

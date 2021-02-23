@@ -7,10 +7,12 @@ sealed trait ClassDiagramElement {
   def isObject: Boolean
 }
 
-final case class AbstractClass(displayName: String, fullName: String) extends ClassDiagramElement {
+final case class UmlAbstractClass(displayName: String, fullName: String) extends ClassDiagramElement {
   override def isObject: Boolean = false
 }
 
-final case class Annotation(displayName: String, fullName: String, isObject: Boolean) extends ClassDiagramElement
+final case class UmlAnnotation(displayName: String, fullName: String, isObject: Boolean) extends ClassDiagramElement
 
-final case class ConcreteClass(displayName: String, fullName: String, isObject: Boolean) extends ClassDiagramElement
+final case class UmlEnum(displayName: String, fullName: String, isObject: Boolean) extends ClassDiagramElement
+
+final case class UmlClass(displayName: String, fullName: String, isObject: Boolean) extends ClassDiagramElement

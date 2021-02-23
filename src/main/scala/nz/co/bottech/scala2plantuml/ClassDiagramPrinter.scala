@@ -47,11 +47,13 @@ object ClassDiagramPrinter {
 
   private def printElement(element: ClassDiagramElement): String =
     element match {
-      case AbstractClass(name, _) =>
+      case UmlAbstractClass(name, _) =>
         s"abstract class ${quoteName(name)}"
-      case Annotation(name, _, _) =>
+      case UmlAnnotation(name, _, _) =>
         s"annotation ${quoteName(name)}"
-      case ConcreteClass(name, _, _) =>
+      case UmlEnum(name, _, _) =>
+        s"enum ${quoteName(name)}"
+      case UmlClass(name, _, _) =>
         s"class ${quoteName(name)}"
     }
 
