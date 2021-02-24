@@ -9,19 +9,27 @@ object SemanticProcessor {
 
   private val logger = LoggerFactory.getLogger(classOf[SemanticProcessor.type])
 
-  def processDocument(document: TextDocument, index: TypeIndex): List[ClassDiagramElement] = {
+  def processDocument(
+      document: TextDocument,
+      typeIndex: TypeIndex,
+      definitionIndex: DefinitionIndex
+    ): List[ClassDiagramElement] = {
     val symbols = document.symbols.toList
-    processSymbols(symbols, index)
+    processSymbols(symbols, typeIndex, definitionIndex)
   }
 
-  private def processSymbols(symbols: List[SymbolInformation], index: TypeIndex): List[ClassDiagramElement] =
+  private def processSymbols(
+      symbols: List[SymbolInformation],
+      typeIndex: TypeIndex,
+      definitionIndex: DefinitionIndex
+    ): List[ClassDiagramElement] =
     symbols.flatMap { symbol =>
       logger.trace(symbolInformationString(symbol))
       symbol.signature match {
         case Signature.Empty    => None
         case _: ValueSignature  => None
-        case _: ClassSignature  => Some(processClass(symbol, index))
-        case _: MethodSignature => None
+        case _: ClassSignature  => Some(processClass(symbol, typeIndex))
+        case _: MethodSignature => Some(processMethod(symbol, definitionIndex))
         case _: TypeSignature   => None
       }
     }
@@ -37,47 +45,90 @@ object SemanticProcessor {
 
   private def processClass(
       symbolInformation: SymbolInformation,
-      index: TypeIndex
+      typeIndex: TypeIndex
     ): ClassDiagramElement = {
-    val displayName = symbolInformation.displayName
-    val fullName    = symbolFullName(symbolInformation.symbol)
+    import symbolInformation.{displayName, symbol}
     if (isTrait(symbolInformation))
-      UmlInterface(displayName, fullName)
-    else if (isAnnotation(symbolInformation, index))
-      UmlAnnotation(displayName, fullName, isObject = isObject(symbolInformation))
-    else if (isEnum(symbolInformation, index))
-      UmlEnum(displayName, fullName, isObject = isObject(symbolInformation))
+      UmlInterface(displayName, symbol)
+    else if (isAnnotation(symbolInformation, typeIndex))
+      UmlAnnotation(displayName, symbol, isObject = isObject(symbolInformation))
+    else if (isEnum(symbolInformation, typeIndex))
+      UmlEnum(displayName, symbol, isObject = isObject(symbolInformation))
     else if (isAbstract(symbolInformation))
-      UmlAbstractClass(displayName, fullName)
+      UmlAbstractClass(displayName, symbol)
     else
-      UmlClass(displayName, fullName, isObject = isObject(symbolInformation))
+      UmlClass(displayName, symbol, isObject = isObject(symbolInformation))
   }
 
-  private def symbolFullName(symbol: String): String =
-    if (symbol.isGlobal) symbol.replace('/', '.').dropRight(1)
-    else symbol.replace('/', '.')
+  private def processMethod(
+      symbolInformation: SymbolInformation,
+      definitionIndex: DefinitionIndex
+    ): ClassDiagramElement = {
+    import symbolInformation.{displayName, symbol}
+    val visibility  = symbolVisibility(symbolInformation)
+    if (isField(symbolInformation))
+      UmlField(displayName, symbol, visibility)
+    else
+      UmlMethod(
+        displayName,
+        symbol,
+        visibility,
+        isConstructor(symbolInformation),
+        isSynthetic(symbolInformation.symbol, definitionIndex)
+      )
+  }
 
-  private def isAnnotation(symbolInformation: SymbolInformation, index: TypeIndex): Boolean =
-    subTypeOf(symbolInformation, "scala/annotation/Annotation#", index)
+  private def symbolVisibility(symbolInformation: SymbolInformation): UmlVisibility =
+    symbolInformation.access match {
+      case Access.Empty                                    => UmlVisibility.Public
+      case PrivateAccess()                                 => UmlVisibility.Private
+      case PrivateThisAccess()                             => UmlVisibility.Private
+      case PrivateWithinAccess(symbol) if symbol.isPackage => UmlVisibility.PackagePrivate
+      case PrivateWithinAccess(_)                          => UmlVisibility.Private
+      case ProtectedAccess()                               => UmlVisibility.Protected
+      case ProtectedThisAccess()                           => UmlVisibility.Protected
+      case ProtectedWithinAccess(_)                        => UmlVisibility.Protected
+      case PublicAccess()                                  => UmlVisibility.Public
+    }
 
-  private def isEnum(symbolInformation: SymbolInformation, index: TypeIndex): Boolean =
-    subTypeOf(symbolInformation, "scala/Enumeration#", index) ||
-      subTypeOf(symbolInformation, "java/lang/Enum#", index)
+  private def isAnnotation(symbolInformation: SymbolInformation, typeIndex: TypeIndex): Boolean =
+    subTypeOf(symbolInformation, "scala/annotation/Annotation#", typeIndex)
 
-  private def subTypeOf(symbolInformation: SymbolInformation, parent: String, index: TypeIndex): Boolean = {
-    val hierarchy = index.getHierarchy(symbolInformation)
+  private def isEnum(symbolInformation: SymbolInformation, typeIndex: TypeIndex): Boolean =
+    subTypeOf(symbolInformation, "scala/Enumeration#", typeIndex) ||
+      subTypeOf(symbolInformation, "java/lang/Enum#", typeIndex)
+
+  private def subTypeOf(symbolInformation: SymbolInformation, parent: String, typeIndex: TypeIndex): Boolean = {
+    val hierarchy = typeIndex.hierarchy(symbolInformation)
     hierarchy.subTypeOf(parent)
   }
 
-  private def isAbstract(symbolInformation: SymbolInformation): Boolean =
-    hasProperty(symbolInformation, SymbolInformation.Property.ABSTRACT)
-
-  private def hasProperty(symbolInformation: SymbolInformation, property: SymbolInformation.Property): Boolean =
-    (symbolInformation.properties & property.value) == property.value
+  // TODO: This should also take into account the synthetics on the text document
+  //  although currently they don't seem to be very useful.
+  private def isSynthetic(symbol: String, definitionIndex: DefinitionIndex): Boolean =
+    definitionIndex.occurrence(symbol).isEmpty
 
   private def isObject(symbolInformation: SymbolInformation): Boolean =
     symbolInformation.kind == SymbolInformation.Kind.OBJECT
 
   private def isTrait(symbolInformation: SymbolInformation): Boolean =
     symbolInformation.kind == SymbolInformation.Kind.TRAIT
+
+  private def isConstructor(symbolInformation: SymbolInformation): Boolean =
+    symbolInformation.kind == SymbolInformation.Kind.CONSTRUCTOR
+
+  private def isAbstract(symbolInformation: SymbolInformation): Boolean =
+    hasProperty(symbolInformation, SymbolInformation.Property.ABSTRACT)
+
+  private def isField(symbolInformation: SymbolInformation): Boolean =
+    isVal(symbolInformation) || isVar(symbolInformation)
+
+  private def isVal(symbolInformation: SymbolInformation): Boolean =
+    hasProperty(symbolInformation, SymbolInformation.Property.VAL)
+
+  private def isVar(symbolInformation: SymbolInformation): Boolean =
+    hasProperty(symbolInformation, SymbolInformation.Property.VAR)
+
+  private def hasProperty(symbolInformation: SymbolInformation, property: SymbolInformation.Property): Boolean =
+    (symbolInformation.properties & property.value) == property.value
 }

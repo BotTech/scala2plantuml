@@ -7,11 +7,13 @@ trait ClassDiagramTest {
 
   protected val exampleDir: String
 
+  protected val TestOptions: Options = Options.Minimal
+
   private def globalSymbol(symbol: String) =
     s"nz/co/bottech/scala2plantuml/examples/$exampleDir/$symbol#"
 
-  protected def success(name: String, diagram: String, options: Options = Options.default): Unit = {
-    val result = generateFromTopLevel(name, options)
+  protected def success(name: String, diagram: String, options: Options = TestOptions): Unit = {
+    val result = generateFromTopLevel(name, options).map(_.trim)
     assert(result == Right(diagram))
   }
 

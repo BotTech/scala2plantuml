@@ -15,9 +15,10 @@ object ClassDiagramGenerator {
     loader
       .load(symbol)
       .map { textDocuments =>
-        val symbolTable = aggregateSymbolTable(textDocuments, loader)
-        val index       = new TypeIndex(symbolTable)
-        textDocuments.flatMap(SemanticProcessor.processDocument(_, index))
+        val symbolTable     = aggregateSymbolTable(textDocuments, loader)
+        val typeIndex       = new TypeIndex(symbolTable)
+        val definitionIndex = new DefinitionIndex(loader)
+        textDocuments.flatMap(SemanticProcessor.processDocument(_, typeIndex, definitionIndex))
       }
   }
 

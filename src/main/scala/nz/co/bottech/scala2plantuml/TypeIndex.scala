@@ -11,7 +11,7 @@ class TypeIndex(symbolTable: SymbolTable) {
   private val logger = LoggerFactory.getLogger(classOf[TypeIndex])
   private val cache  = TrieMap.empty[String, TypeHierarchy]
 
-  def getHierarchy(symbolInformation: SymbolInformation): TypeHierarchy =
+  def hierarchy(symbolInformation: SymbolInformation): TypeHierarchy =
     cache.getOrElseUpdate(
       symbolInformation.symbol, {
         val parentTypes = symbolInformation.signature match {
@@ -23,7 +23,7 @@ class TypeIndex(symbolTable: SymbolTable) {
           case typeRef: TypeRef => typeRef
         }
         val parentSymbols     = parentTypeRefs.map(lookupSymbol)
-        val parentHierarchies = parentSymbols.map(getHierarchy)
+        val parentHierarchies = parentSymbols.map(hierarchy)
         TypeHierarchy(symbolInformation, parentHierarchies)
       }
     )

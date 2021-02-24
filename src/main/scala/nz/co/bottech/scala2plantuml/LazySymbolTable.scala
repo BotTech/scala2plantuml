@@ -8,15 +8,15 @@ import scala.meta.internal.symtab.SymbolTable
 
 class LazySymbolTable(loader: SemanticDbLoader) extends SymbolTable {
 
-  private val symbolCache = TrieMap.empty[String, SymbolInformation]
+  private val cache = TrieMap.empty[String, SymbolInformation]
   private val loaded      = ConcurrentHashMap.newKeySet[String]().asScala
 
   override def info(symbol: String): Option[SymbolInformation] =
-    symbolCache.get(symbol) match {
+    cache.get(symbol) match {
       case some: Some[_] => some
       case None =>
         loadSymbol(symbol)
-        symbolCache.get(symbol)
+        cache.get(symbol)
     }
 
   private def loadSymbol(symbol: String): Unit =
@@ -25,7 +25,7 @@ class LazySymbolTable(loader: SemanticDbLoader) extends SymbolTable {
         if (!loaded.contains(symbol)) {
           loader.load(symbol).foreach { textDocuments =>
             val symbols = textDocuments.flatMap(_.symbols).map(info => info.symbol -> info)
-            symbolCache.addAll(symbols)
+            cache.addAll(symbols)
           }
           val _ = loaded.add(symbol)
         }

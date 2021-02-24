@@ -27,14 +27,8 @@ object NameTests extends TestSuite with ClassDiagramTest {
       success(
         "AlphaNumericName",
         """class nz.co.bottech.scala2plantuml.examples.name.Foo123""",
-        Options.default.copy(namingStrategy = Options.FullyQualified)
+        TestOptions.copy(naming = Options.FullyQualified)
       )
     }
   }
 }
-
-/**
- * @startuml
- * class nz.co.bottech.scala2plantuml.Foo123
- * @enduml
- */
