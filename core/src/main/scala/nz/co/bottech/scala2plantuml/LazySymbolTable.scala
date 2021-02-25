@@ -6,7 +6,7 @@ import scala.collection.concurrent.TrieMap
 import scala.meta.internal.semanticdb.SymbolInformation
 import scala.meta.internal.symtab.SymbolTable
 
-private[scala2plantuml] class LazySymbolTable(loader: SemanticDbLoader) extends SymbolTable {
+private[scala2plantuml] class LazySymbolTable(loader: SemanticdbLoader) extends SymbolTable {
 
   private val logger = LoggerFactory.getLogger(classOf[LazySymbolTable])
   private val cache  = TrieMap.empty[String, SymbolInformation]

@@ -9,7 +9,7 @@ import scala.meta.internal.semanticdb.Scala._
 import scala.meta.internal.semanticdb.{TextDocument, TextDocuments}
 import scala.util.Using
 
-private[scala2plantuml] class SemanticDbLoader(prefixes: Seq[String], classLoader: ClassLoader) {
+private[scala2plantuml] class SemanticdbLoader(prefixes: Seq[String], classLoader: ClassLoader) {
 
   type Result = Either[String, Seq[TextDocument]]
 
@@ -26,7 +26,7 @@ private[scala2plantuml] class SemanticDbLoader(prefixes: Seq[String], classLoade
           }
         case Seq() => Left(errors)
       }
-    symbolSemanticDbPath(symbol).flatMap { path =>
+    semanticdbPath(symbol).flatMap { path =>
       val paths =
         if (prefixes.nonEmpty)
           prefixes.map(prefix => s"$prefix/$path")
@@ -54,7 +54,7 @@ private[scala2plantuml] class SemanticDbLoader(prefixes: Seq[String], classLoade
       getResource(path).flatMap { resource =>
         val file = Paths.get(resource.toURI).toFile
         if (file.isDirectory) {
-          val results = findSemanticDbs(file).view.map { file =>
+          val results = findSemanticdbs(file).view.map { file =>
             loadResource(new FileInputStream(file))
           }.takeWhile(_.isRight)
           results.lastOption.collect {
@@ -74,11 +74,11 @@ private[scala2plantuml] class SemanticDbLoader(prefixes: Seq[String], classLoade
       .toRight(s"Resource not found: $path")
 
   private def loadResource(inputStream: => InputStream): Result =
-    Using(inputStream) { semanticDb =>
-      TextDocuments.parseFrom(semanticDb).documents
+    Using(inputStream) { semanticdb =>
+      TextDocuments.parseFrom(semanticdb).documents
     }.toEither.left.map(_.getMessage)
 
-  private def symbolSemanticDbPath(symbol: String): Either[String, String] =
+  private def semanticdbPath(symbol: String): Either[String, String] =
     if (symbol.isGlobal)
       Right(s"${symbol.dropRight(1).takeWhile(_ != '#')}.scala.semanticdb")
     else
@@ -90,7 +90,7 @@ private[scala2plantuml] class SemanticDbLoader(prefixes: Seq[String], classLoade
     else None
   }
 
-  private def findSemanticDbs(directory: File): Array[File] =
+  private def findSemanticdbs(directory: File): Array[File] =
     directory.listFiles(new FilenameFilter {
 
       override def accept(dir: File, name: String): Boolean =

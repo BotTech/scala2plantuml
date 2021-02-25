@@ -11,14 +11,14 @@ object ClassDiagramGenerator {
       ignore: String => Boolean,
       classloader: ClassLoader
     ): Seq[ClassDiagramElement] = {
-    val loader          = new SemanticDbLoader(prefixes, classloader)
+    val loader          = new SemanticdbLoader(prefixes, classloader)
     val symbolTable     = aggregateSymbolTable(loader)
     val typeIndex       = new TypeIndex(symbolTable)
     val definitionIndex = new DefinitionIndex(loader)
     SemanticProcessor.processSymbol(symbol, ignore, symbolTable, typeIndex, definitionIndex)
   }
 
-  private def aggregateSymbolTable(loader: SemanticDbLoader) =
+  private def aggregateSymbolTable(loader: SemanticdbLoader) =
     AggregateSymbolTable(
       List(
         new LazySymbolTable(loader),

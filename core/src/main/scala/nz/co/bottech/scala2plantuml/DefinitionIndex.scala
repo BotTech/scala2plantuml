@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory
 import scala.collection.concurrent.TrieMap
 import scala.meta.internal.semanticdb.SymbolOccurrence
 
-private[scala2plantuml] class DefinitionIndex(loader: SemanticDbLoader) {
+private[scala2plantuml] class DefinitionIndex(loader: SemanticdbLoader) {
 
   private val logger = LoggerFactory.getLogger(classOf[DefinitionIndex])
   private val cache  = TrieMap.empty[String, Option[SymbolOccurrence]]
