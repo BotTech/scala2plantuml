@@ -1,5 +1,6 @@
 package nz.co.bottech.scala2plantuml
 
+import nz.co.bottech.scala2plantuml.ClassDiagramElement._
 import nz.co.bottech.scala2plantuml.ClassDiagramPrinter.Options.Unsorted
 import nz.co.bottech.scala2plantuml.ClassDiagramPrinter._
 
@@ -26,8 +27,8 @@ private[scala2plantuml] object DiagramModifications {
       options.syntheticMethods match {
         case Options.HideSyntheticMethods =>
           elements.filterNot {
-            case method: UmlMethod => !method.constructor && method.synthetic
-            case _                 => false
+            case method: Method => !method.constructor && method.synthetic
+            case _              => false
           }
         case Options.ShowSyntheticMethods =>
           elements
@@ -37,13 +38,16 @@ private[scala2plantuml] object DiagramModifications {
       options.companionObjects match {
         case Options.CombineAsStatic =>
           val nonObjectNames =
-            elements.filterNot(_.isObject).map(element => symbolToScalaIdentifier(element.symbol)).toSet
+            elements
+              .filterNot(ClassDiagramElement.isObject)
+              .map(element => symbolToScalaIdentifier(element.symbol))
+              .toSet
           elements.filterNot(element =>
-            element.isObject && nonObjectNames.contains(symbolToScalaIdentifier(element.symbol))
+            ClassDiagramElement.isObject(element) && nonObjectNames.contains(symbolToScalaIdentifier(element.symbol))
           )
         case Options.SeparateClasses =>
           elements.map { element =>
-            if (element.isObject) renameElement(element, _.displayName + "$")
+            if (ClassDiagramElement.isObject(element)) renameElement(element, _.displayName + "$")
             else element
           }
       }
@@ -73,12 +77,12 @@ private[scala2plantuml] object DiagramModifications {
       options.constructor match {
         case Options.HideConstructors =>
           elements.filterNot {
-            case method: UmlMethod => method.constructor
-            case _                 => false
+            case method: Method => method.constructor
+            case _              => false
           }
         case Options.ShowConstructors(stereotype, name) =>
           elements.map {
-            case method: UmlMethod if method.constructor =>
+            case method: Method if method.constructor =>
               val newName            = name(method)
               val nameWithStereotype = stereotype.map(s => s"<<$s>> $newName").getOrElse(newName)
               method.copy(displayName = nameWithStereotype)
@@ -96,7 +100,7 @@ private[scala2plantuml] object DiagramModifications {
             case ((outer, acc), element) =>
               if (isMember(element)) {
                 val parent       = methodParent(element.symbol)
-                def createParent = UmlClass(scalaTypeName(symbolToScalaIdentifier(parent)), parent, isObject = false)
+                def createParent = Class(scalaTypeName(symbolToScalaIdentifier(parent)), parent, isObject = false)
                 outer match {
                   case head :: tail =>
                     if (head == parent)
@@ -139,20 +143,20 @@ private[scala2plantuml] object DiagramModifications {
 
     private def renameElement(element: ClassDiagramElement, f: ClassDiagramElement => String): ClassDiagramElement =
       element match {
-        case element: UmlAbstractClass => element.copy(displayName = f(element))
-        case element: UmlAnnotation    => element.copy(displayName = f(element))
-        case element: UmlEnum          => element.copy(displayName = f(element))
-        case element: UmlField         => element
-        case element: UmlClass         => element.copy(displayName = f(element))
-        case element: UmlInterface     => element.copy(displayName = f(element))
-        case element: UmlMethod        => element
+        case element: AbstractClass => element.copy(displayName = f(element))
+        case element: Annotation    => element.copy(displayName = f(element))
+        case element: Enum          => element.copy(displayName = f(element))
+        case element: Field         => element
+        case element: Class         => element.copy(displayName = f(element))
+        case element: Interface     => element.copy(displayName = f(element))
+        case element: Method        => element
       }
 
     private def isMember(element: ClassDiagramElement): Boolean =
       element match {
-        case _: UmlField  => true
-        case _: UmlMethod => true
-        case _            => false
+        case _: Field  => true
+        case _: Method => true
+        case _         => false
       }
   }
 

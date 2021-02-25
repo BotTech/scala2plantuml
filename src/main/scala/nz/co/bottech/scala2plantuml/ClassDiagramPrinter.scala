@@ -1,5 +1,6 @@
 package nz.co.bottech.scala2plantuml
 
+import nz.co.bottech.scala2plantuml.ClassDiagramElement._
 import nz.co.bottech.scala2plantuml.ClassDiagramPrinter.Options._
 
 import scala.annotation.tailrec
@@ -152,28 +153,28 @@ object ClassDiagramPrinter {
 
   private def printElementStart(element: ClassDiagramElement): String =
     element match {
-      case uml: UmlAbstractClass =>
+      case uml: AbstractClass =>
         s"abstract class ${quoteName(uml.displayName)}"
-      case uml: UmlAnnotation =>
+      case uml: Annotation =>
         s"annotation ${quoteName(uml.displayName)}"
-      case uml: UmlClass =>
+      case uml: Class =>
         s"class ${quoteName(uml.displayName)}"
-      case uml: UmlEnum =>
+      case uml: Enum =>
         s"enum ${quoteName(uml.displayName)}"
-      case uml: UmlField =>
+      case uml: Field =>
         s"${printVisibility(uml.visibility)} {field} ${uml.displayName}"
-      case uml: UmlInterface =>
+      case uml: Interface =>
         s"interface ${quoteName(uml.displayName)}"
-      case uml: UmlMethod =>
+      case uml: Method =>
         s"${printVisibility(uml.visibility)} {method} ${uml.displayName}"
     }
 
-  private def printVisibility(visibility: UmlVisibility): String =
+  private def printVisibility(visibility: Visibility): String =
     visibility match {
-      case UmlVisibility.Private        => "-"
-      case UmlVisibility.Protected      => "#"
-      case UmlVisibility.PackagePrivate => "~"
-      case UmlVisibility.Public         => "+"
+      case Visibility.Private        => "-"
+      case Visibility.Protected      => "#"
+      case Visibility.PackagePrivate => "~"
+      case Visibility.Public         => "+"
     }
 
   private def quoteName(name: String): String =

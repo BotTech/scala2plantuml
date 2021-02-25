@@ -1,5 +1,6 @@
 package nz.co.bottech.scala2plantuml
 
+import nz.co.bottech.scala2plantuml.ClassDiagramElement.{Annotation => UMLAnnotation, _}
 import org.slf4j.LoggerFactory
 
 import scala.annotation.tailrec
@@ -76,15 +77,15 @@ private[scala2plantuml] object SemanticProcessor {
     ): ClassDiagramElement = {
     import symbolInformation.{displayName, symbol}
     if (isTrait(symbolInformation))
-      UmlInterface(displayName, symbol)
+      Interface(displayName, symbol)
     else if (isAnnotation(symbolInformation, typeIndex))
-      UmlAnnotation(displayName, symbol, isObject = isObject(symbolInformation))
+      UMLAnnotation(displayName, symbol, isObject = isObject(symbolInformation))
     else if (isEnum(symbolInformation, typeIndex))
-      UmlEnum(displayName, symbol, isObject = isObject(symbolInformation))
+      Enum(displayName, symbol, isObject = isObject(symbolInformation))
     else if (isAbstract(symbolInformation))
-      UmlAbstractClass(displayName, symbol)
+      AbstractClass(displayName, symbol)
     else
-      UmlClass(displayName, symbol, isObject = isObject(symbolInformation))
+      Class(displayName, symbol, isObject = isObject(symbolInformation))
   }
 
   private def methodElement(
@@ -94,9 +95,9 @@ private[scala2plantuml] object SemanticProcessor {
     import symbolInformation.{displayName, symbol}
     val visibility = symbolVisibility(symbolInformation)
     if (isField(symbolInformation))
-      UmlField(displayName, symbol, visibility)
+      Field(displayName, symbol, visibility)
     else
-      UmlMethod(
+      Method(
         displayName,
         symbol,
         visibility,
@@ -160,17 +161,17 @@ private[scala2plantuml] object SemanticProcessor {
       case StructuralType(tpe, declarations) => typeReferences(tpe) ++ optionalScopeReferences(declarations)
     }
 
-  private def symbolVisibility(symbolInformation: SymbolInformation): UmlVisibility =
+  private def symbolVisibility(symbolInformation: SymbolInformation): Visibility =
     symbolInformation.access match {
-      case Access.Empty                                    => UmlVisibility.Public
-      case PrivateAccess()                                 => UmlVisibility.Private
-      case PrivateThisAccess()                             => UmlVisibility.Private
-      case PrivateWithinAccess(symbol) if symbol.isPackage => UmlVisibility.PackagePrivate
-      case PrivateWithinAccess(_)                          => UmlVisibility.Private
-      case ProtectedAccess()                               => UmlVisibility.Protected
-      case ProtectedThisAccess()                           => UmlVisibility.Protected
-      case ProtectedWithinAccess(_)                        => UmlVisibility.Protected
-      case PublicAccess()                                  => UmlVisibility.Public
+      case Access.Empty                                    => Visibility.Public
+      case PrivateAccess()                                 => Visibility.Private
+      case PrivateThisAccess()                             => Visibility.Private
+      case PrivateWithinAccess(symbol) if symbol.isPackage => Visibility.PackagePrivate
+      case PrivateWithinAccess(_)                          => Visibility.Private
+      case ProtectedAccess()                               => Visibility.Protected
+      case ProtectedThisAccess()                           => Visibility.Protected
+      case ProtectedWithinAccess(_)                        => Visibility.Protected
+      case PublicAccess()                                  => Visibility.Public
     }
 
   private def isAnnotation(symbolInformation: SymbolInformation, typeIndex: TypeIndex): Boolean =
