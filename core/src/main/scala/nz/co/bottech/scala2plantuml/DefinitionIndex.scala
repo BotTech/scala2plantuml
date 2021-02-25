@@ -26,6 +26,6 @@ private[scala2plantuml] class DefinitionIndex(loader: SemanticDbLoader) {
         logger.warn(error)
       case Right(textDocuments) =>
         val definitions = textDocuments.flatMap(_.occurrences.filter(_.role == SymbolOccurrence.Role.DEFINITION))
-        cache.addAll(definitions.map(occurrence => occurrence.symbol -> Some(occurrence)))
+        cache ++= definitions.map(occurrence => occurrence.symbol -> Some(occurrence))
     }
 }

@@ -12,7 +12,7 @@ import scala.meta.internal.symtab.SymbolTable
 // TODO: Rename this.
 private[scala2plantuml] object SemanticProcessor {
 
-  private val logger = LoggerFactory.getLogger(classOf[SemanticProcessor.type])
+  private val logger = LoggerFactory.getLogger(getClass.getName.dropRight(1))
 
   def processSymbol(
       symbol: String,

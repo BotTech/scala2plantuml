@@ -1,18 +1,26 @@
+ThisBuild / organization := "nz.co.bottech"
+ThisBuild / organizationName := "BotTech"
+ThisBuild / homepage := Some(url("https://github.com/BotTech/scala2plantuml"))
+ThisBuild / version := "0.1"
+
 name := "scala2plantuml"
-organization := "nz.co.bottech"
-organizationName := "BotTech"
-homepage := Some(url("https://github.com/BotTech/scala2plantuml"))
-version := "0.1"
+crossScalaVersions := Nil
+publish / skip := true
 
 aggregateProjects(core)
 
+val scala212 = "2.12.13"
+val scala213 = "2.13.4"
+val supportedScalaVersions = List(scala212, scala213)
+
 val commonLibraryProjectSettings = List(
-  scalaVersion := "2.13.4"
+  crossScalaVersions := supportedScalaVersions
 )
 
 lazy val core = project
   .settings(commonLibraryProjectSettings: _*)
   .settings(
+    name := s"${(LocalRootProject / name).value}",
     // Required for testing.
     semanticdbEnabled := true,
     semanticdbVersion := "4.4.9",
