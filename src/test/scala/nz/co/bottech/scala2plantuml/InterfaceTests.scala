@@ -8,7 +8,7 @@ object InterfaceTests extends TestSuite with ClassDiagramTest {
 
   val tests: Tests = Tests {
     test("interface") {
-      success("MyTrait", """interface MyTrait""")
+      success("MyTrait#", """interface MyTrait""")
     }
   }
 }

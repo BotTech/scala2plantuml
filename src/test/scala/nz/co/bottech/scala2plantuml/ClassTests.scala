@@ -8,13 +8,13 @@ object ClassTests extends TestSuite with ClassDiagramTest {
 
   val tests: Tests = Tests {
     test("simple class") {
-      success("SimpleClass", """class SimpleClass""")
+      success("SimpleClass#", """class SimpleClass""")
     }
     test("case class") {
-      success("CaseClass", """class CaseClass""")
+      success("CaseClass#", """class CaseClass""")
     }
     test("object class") {
-      success("ObjectClass", """class ObjectClass""")
+      success("ObjectClass.", """class ObjectClass""")
     }
   }
 }

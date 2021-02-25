@@ -14,6 +14,7 @@ object ClassDiagramPrinter {
   final case class Options(
       companionObjects: CompanionObjectsOption,
       constructor: ConstructorOption,
+      hide: HideOption,
       naming: NamingOption,
       sorting: SortingOption,
       syntheticMethods: SyntheticMethodsOption)
@@ -23,9 +24,12 @@ object ClassDiagramPrinter {
     // Often used for constructors and other "constructors" like apply.
     val CreateStereotype: Option[String] = Some("Create")
 
+    val ScalaStdLibPattern: String = "scala/**"
+
     val Default: Options = Options(
       companionObjects = CombineAsStatic,
       constructor = ShowConstructors(),
+      hide = HideMatching(),
       naming = RemoveCommonPrefix,
       sorting = NaturalSortOrder,
       syntheticMethods = HideSyntheticMethods
@@ -34,6 +38,7 @@ object ClassDiagramPrinter {
     val Minimal: Options = Options(
       companionObjects = CombineAsStatic,
       constructor = HideConstructors,
+      hide = HideMatching(),
       naming = RemoveCommonPrefix,
       sorting = NaturalSortOrder,
       syntheticMethods = HideSyntheticMethods
@@ -42,6 +47,7 @@ object ClassDiagramPrinter {
     val Verbose: Options = Options(
       companionObjects = SeparateClasses,
       constructor = ShowConstructors(CreateStereotype, constructorTypeName),
+      hide = ShowAll,
       naming = FullyQualified,
       sorting = Unsorted,
       syntheticMethods = ShowSyntheticMethods
@@ -57,8 +63,17 @@ object ClassDiagramPrinter {
     sealed trait ConstructorOption
     case object HideConstructors extends ConstructorOption
 
-    case class ShowConstructors(stereotype: Option[String] = None, name: ClassDiagramElement => String = _.displayName)
+    final case class ShowConstructors(
+        stereotype: Option[String] = None,
+        name: ClassDiagramElement => String = _.displayName)
         extends ConstructorOption
+
+    sealed trait HideOption
+    case object ShowAll extends HideOption
+    // Pattern supports two wildcards:
+    // - ** -> matches any character
+    // - *  -> matches all characters except for '/'
+    final case class HideMatching(patterns: Set[String] = Set(ScalaStdLibPattern)) extends HideOption
 
     sealed trait NamingOption
     case object FullyQualified     extends NamingOption
@@ -101,11 +116,11 @@ object ClassDiagramPrinter {
       }
     @tailrec
     def loop(remaining: Seq[ClassDiagramElement], previous: Option[String], outer: List[String]): String = {
-      val maybeNext = remaining.headOption.map(_.symbol)
+      val maybeCurrent = remaining.headOption.map(_.symbol)
       val nextOuter = closeOuter(
-        maybeNext,
+        maybeCurrent,
         previous
-          .map(endPrevious(_, maybeNext, outer))
+          .map(endPrevious(_, maybeCurrent, outer))
           .getOrElse(outer)
       )
       remaining match {
@@ -118,7 +133,7 @@ object ClassDiagramPrinter {
       }
     }
 
-    val updatedElements = applyOptions(elements, options)
+    val updatedElements = DiagramModifications(elements, options)
     loop(updatedElements, None, Nil)
   }
 
@@ -134,136 +149,6 @@ object ClassDiagramPrinter {
 
   def scalaTypeName(identifier: String): String =
     identifier.split('.').last.split('#').head
-
-  implicit private class FluidOptions(val elements: Seq[ClassDiagramElement]) extends AnyVal {
-
-    def removeSynthetics(options: Options): Seq[ClassDiagramElement] =
-      options.syntheticMethods match {
-        case Options.HideSyntheticMethods =>
-          elements.filterNot {
-            case method: UmlMethod => !method.constructor && method.synthetic
-            case _                 => false
-          }
-        case Options.ShowSyntheticMethods =>
-          elements
-      }
-
-    def combineCompanionObjects(options: Options): Seq[ClassDiagramElement] =
-      options.companionObjects match {
-        case Options.CombineAsStatic =>
-          val nonObjectNames =
-            elements.filterNot(_.isObject).map(element => symbolToScalaIdentifier(element.symbol)).toSet
-          elements.filterNot(element =>
-            element.isObject && nonObjectNames.contains(symbolToScalaIdentifier(element.symbol))
-          )
-        case Options.SeparateClasses =>
-          elements.map { element =>
-            if (element.isObject) renameElement(element, _.displayName + "$")
-            else element
-          }
-      }
-
-    def rename(options: Options): Seq[ClassDiagramElement] =
-      options.naming match {
-        case Options.FullyQualified =>
-          elements.map(renameElement(_, element => symbolToScalaIdentifier(element.symbol).replace("`", "")))
-        case Options.RemoveCommonPrefix =>
-          // FIXME: This will probably break links to types in other packages.
-          val firstPrefix = elements.headOption.map { element =>
-            val i = element.symbol.lastIndexOf('/')
-            element.symbol.take(i + 1)
-          }.getOrElse("")
-          val commonPrefix = elements.foldLeft(firstPrefix) {
-            case (prefix, element) => longestPrefix(prefix, element.symbol)
-          }
-          elements.map(
-            renameElement(
-              _,
-              element => symbolToScalaIdentifier(element.symbol.drop(commonPrefix.length)).replace("`", "")
-            )
-          )
-      }
-
-    def updateConstructors(options: Options): Seq[ClassDiagramElement] =
-      options.constructor match {
-        case Options.HideConstructors =>
-          elements.filterNot {
-            case method: UmlMethod => method.constructor
-            case _                 => false
-          }
-        case Options.ShowConstructors(stereotype, name) =>
-          elements.map {
-            case method: UmlMethod if method.constructor =>
-              val newName            = name(method)
-              val nameWithStereotype = stereotype.map(s => s"<<$s>> $newName").getOrElse(newName)
-              method.copy(displayName = nameWithStereotype)
-            case element => element
-          }
-      }
-
-    def addMissingElements(options: Options): Seq[ClassDiagramElement] =
-      // Fields may appear before their parents so we may need to insert duplicate parents and we have to do that
-      // before other operations like renaming.
-      options.sorting match {
-        case Unsorted =>
-          val types = elements.filter(_.symbol.isType).map(element => element.symbol -> element).toMap
-          val (_, withMissing) = elements.foldLeft((List.empty[String], Vector.empty[ClassDiagramElement])) {
-            case ((outer, acc), element) =>
-              if (isMember(element)) {
-                val parent       = methodParent(element.symbol)
-                def createParent = UmlClass(scalaTypeName(symbolToScalaIdentifier(parent)), parent, isObject = false)
-                outer match {
-                  case head :: tail =>
-                    if (head == parent)
-                      (outer, acc :+ element)
-                    else {
-                      val clazz = types.getOrElse(parent, createParent)
-                      (parent +: tail, acc :+ clazz :+ element)
-                    }
-                  case Nil =>
-                    val clazz = types.getOrElse(parent, createParent)
-                    (List(parent), acc :+ clazz :+ element)
-                }
-              } else
-                (outer, acc :+ element)
-          }
-          withMissing
-        case _ => elements
-      }
-
-    def sort(options: Options): Seq[ClassDiagramElement] =
-      options.sorting match {
-        case Options.NaturalSortOrder => elements.sortBy(_.symbol)(new NaturalOrdering)
-        case Options.Unsorted         => elements
-      }
-
-    private def longestPrefix(a: String, b: String): String = {
-      val i = (0 until math.min(a.length, b.length)).findLast { i =>
-        a(i) == b(i)
-      }.getOrElse(-1)
-      a.take(i + 1)
-    }
-
-    private def renameElement(element: ClassDiagramElement, f: ClassDiagramElement => String): ClassDiagramElement =
-      element match {
-        case element: UmlAbstractClass => element.copy(displayName = f(element))
-        case element: UmlAnnotation    => element.copy(displayName = f(element))
-        case element: UmlEnum          => element.copy(displayName = f(element))
-        case element: UmlField         => element
-        case element: UmlClass         => element.copy(displayName = f(element))
-        case element: UmlInterface     => element.copy(displayName = f(element))
-        case element: UmlMethod        => element
-      }
-  }
-
-  private def applyOptions(elements: Seq[ClassDiagramElement], options: Options): Seq[ClassDiagramElement] =
-    elements
-      .removeSynthetics(options)
-      .addMissingElements(options)
-      .combineCompanionObjects(options)
-      .rename(options)
-      .updateConstructors(options)
-      .sort(options)
 
   private def printElementStart(element: ClassDiagramElement): String =
     element match {
@@ -294,11 +179,4 @@ object ClassDiagramPrinter {
   private def quoteName(name: String): String =
     if (SomewhatSensibleName.pattern.matcher(name).matches()) name
     else s""""$name""""
-
-  private def isMember(element: ClassDiagramElement): Boolean =
-    element match {
-      case _: UmlField  => true
-      case _: UmlMethod => true
-      case _            => false
-    }
 }

@@ -2,37 +2,51 @@ package nz.co.bottech.scala2plantuml
 
 import org.slf4j.LoggerFactory
 
+import scala.annotation.tailrec
+import scala.collection.immutable.HashSet
 import scala.meta.internal.semanticdb.Scala._
 import scala.meta.internal.semanticdb._
+import scala.meta.internal.symtab.SymbolTable
 
-object SemanticProcessor {
+// TODO: Rename this.
+private[scala2plantuml] object SemanticProcessor {
 
   private val logger = LoggerFactory.getLogger(classOf[SemanticProcessor.type])
 
-  def processDocument(
-      document: TextDocument,
+  def processSymbol(
+      symbol: String,
+      ignore: String => Boolean,
+      symbolTable: SymbolTable,
       typeIndex: TypeIndex,
       definitionIndex: DefinitionIndex
-    ): List[ClassDiagramElement] = {
-    val symbols = document.symbols.toList
-    processSymbols(symbols, typeIndex, definitionIndex)
-  }
-
-  private def processSymbols(
-      symbols: List[SymbolInformation],
-      typeIndex: TypeIndex,
-      definitionIndex: DefinitionIndex
-    ): List[ClassDiagramElement] =
-    symbols.flatMap { symbol =>
-      logger.trace(symbolInformationString(symbol))
-      symbol.signature match {
-        case Signature.Empty    => None
-        case _: ValueSignature  => None
-        case _: ClassSignature  => Some(processClass(symbol, typeIndex))
-        case _: MethodSignature => Some(processMethod(symbol, definitionIndex))
-        case _: TypeSignature   => None
+    ): Seq[ClassDiagramElement] = {
+    @tailrec
+    def loop(
+        remaining: Vector[String],
+        seen: HashSet[String],
+        acc: Vector[ClassDiagramElement]
+      ): Vector[ClassDiagramElement] =
+      remaining match {
+        case current +: tail if seen.contains(current) || ignore(current) =>
+          loop(tail, seen, acc)
+        case current +: tail =>
+          symbolTable.info(current) match {
+            case Some(symbolInformation: SymbolInformation) =>
+              logger.trace(symbolInformationString(symbolInformation))
+              val elements = symbolElements(symbolInformation, typeIndex, definitionIndex)
+              // Traverse breadth-first so that we process a full symbol before moving onto the next.
+              val nextSymbols = tail ++ symbolReferences(symbolInformation)
+              val nextSeen    = seen + current
+              loop(nextSymbols, nextSeen, elements ++ acc)
+            case None =>
+              if (!scalaStdLibSymbol(current)) logger.warn(s"Missing symbol for $current")
+              loop(remaining.init, seen, acc)
+          }
+        case _ => acc
       }
-    }
+
+    loop(Vector(symbol), HashSet.empty, Vector.empty)
+  }
 
   private def symbolInformationString(symbol: SymbolInformation): String =
     s"""SymbolInformation(
@@ -43,7 +57,20 @@ object SemanticProcessor {
        |  signature: ${symbol.signature}
        |)""".stripMargin
 
-  private def processClass(
+  private def symbolElements(
+      symbolInformation: SymbolInformation,
+      typeIndex: TypeIndex,
+      definitionIndex: DefinitionIndex
+    ): Vector[ClassDiagramElement] =
+    symbolInformation.signature match {
+      case Signature.Empty    => Vector.empty
+      case _: ValueSignature  => Vector.empty
+      case _: ClassSignature  => Vector(classElement(symbolInformation, typeIndex))
+      case _: MethodSignature => Vector(methodElement(symbolInformation, definitionIndex))
+      case _: TypeSignature   => Vector.empty
+    }
+
+  private def classElement(
       symbolInformation: SymbolInformation,
       typeIndex: TypeIndex
     ): ClassDiagramElement = {
@@ -60,12 +87,12 @@ object SemanticProcessor {
       UmlClass(displayName, symbol, isObject = isObject(symbolInformation))
   }
 
-  private def processMethod(
+  private def methodElement(
       symbolInformation: SymbolInformation,
       definitionIndex: DefinitionIndex
     ): ClassDiagramElement = {
     import symbolInformation.{displayName, symbol}
-    val visibility  = symbolVisibility(symbolInformation)
+    val visibility = symbolVisibility(symbolInformation)
     if (isField(symbolInformation))
       UmlField(displayName, symbol, visibility)
     else
@@ -77,6 +104,61 @@ object SemanticProcessor {
         isSynthetic(symbolInformation.symbol, definitionIndex)
       )
   }
+
+  private def symbolReferences(symbolInformation: SymbolInformation): Seq[String] =
+    symbolInformation.signature match {
+      case Signature.Empty         => Seq.empty
+      case value: ValueSignature   => valueReferences(value)
+      case clazz: ClassSignature   => classReferences(clazz)
+      case method: MethodSignature => methodReferences(method)
+      case typ: TypeSignature      => typeSignatureReferences(typ)
+    }
+
+  private def valueReferences(value: ValueSignature): Seq[String] =
+    typeReferences(value.tpe)
+
+  private def classReferences(clazz: ClassSignature): Seq[String] =
+    typeReferences(clazz.self) ++
+      clazz.parents.flatMap(typeReferences) ++
+      optionalScopeReferences(clazz.typeParameters) ++
+      optionalScopeReferences(clazz.declarations)
+
+  private def methodReferences(method: MethodSignature): Seq[String] =
+    optionalScopeReferences(method.typeParameters) ++
+      method.parameterLists.flatMap(scopeReferences) ++
+      typeReferences(method.returnType)
+
+  private def typeSignatureReferences(typ: TypeSignature): Seq[String] =
+    optionalScopeReferences(typ.typeParameters) ++
+      typeReferences(typ.lowerBound) ++
+      typeReferences(typ.upperBound)
+
+  private def optionalScopeReferences(maybeScope: Option[Scope]): Seq[String] =
+    maybeScope.map(scopeReferences).getOrElse(Seq.empty)
+
+  private def scopeReferences(scope: Scope): Seq[String] =
+    scope.symlinks ++ scope.hardlinks.flatMap(symbolReferences)
+
+  private def typeReferences(typ: Type): Seq[String] =
+    typ match {
+      case Type.Empty                         => Seq.empty
+      case WithType(types)                    => types.flatMap(typeReferences)
+      case UnionType(types)                   => types.flatMap(typeReferences)
+      case _: ConstantType                    => Seq.empty
+      case RepeatedType(tpe)                  => typeReferences(tpe)
+      case ExistentialType(tpe, declarations) => typeReferences(tpe) ++ optionalScopeReferences(declarations)
+      case TypeRef(prefix, symbol, typeArguments) =>
+        symbol +: typeReferences(prefix) ++: typeArguments.flatMap(typeReferences)
+      case SingleType(prefix, symbol)         => symbol +: typeReferences(prefix)
+      case UniversalType(typeParameters, tpe) => typeReferences(tpe) ++ optionalScopeReferences(typeParameters)
+      case IntersectionType(types)            => types.flatMap(typeReferences)
+      case ByNameType(tpe)                    => typeReferences(tpe)
+      case ThisType(symbol)                   => Seq(symbol)
+      case AnnotatedType(annotations, tpe) =>
+        typeReferences(tpe) ++ annotations.flatMap(annotation => typeReferences(annotation.tpe))
+      case SuperType(prefix, symbol)         => symbol +: typeReferences(prefix)
+      case StructuralType(tpe, declarations) => typeReferences(tpe) ++ optionalScopeReferences(declarations)
+    }
 
   private def symbolVisibility(symbolInformation: SymbolInformation): UmlVisibility =
     symbolInformation.access match {

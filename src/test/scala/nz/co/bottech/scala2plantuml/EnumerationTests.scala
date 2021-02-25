@@ -8,7 +8,8 @@ object EnumerationTests extends TestSuite with ClassDiagramTest {
 
   val tests: Tests = Tests {
     test("enum") {
-      success("WeekDay",
+      success(
+        "WeekDay.",
         """enum WeekDay {
           |  + {field} Fri
           |  + {field} Mon
@@ -17,7 +18,8 @@ object EnumerationTests extends TestSuite with ClassDiagramTest {
           |  + {field} Thu
           |  + {field} Tue
           |  + {field} Wed
-          |}""".stripMargin)
+          |}""".stripMargin
+      )
     }
     // TODO: Java enums (java.lang.Enum)
   }

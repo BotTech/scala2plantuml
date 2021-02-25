@@ -3,7 +3,9 @@ package nz.co.bottech.scala2plantuml
 import scala.annotation.tailrec
 import scala.meta.internal.semanticdb._
 
-final case class TypeHierarchy(symbolInformation: SymbolInformation, parents: Seq[TypeHierarchy]) {
+final private[scala2plantuml] case class TypeHierarchy(
+    symbolInformation: SymbolInformation,
+    parents: Seq[TypeHierarchy]) {
 
   def subTypeOf(parent: String): Boolean = {
     @tailrec

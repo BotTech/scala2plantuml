@@ -1,6 +1,6 @@
 package nz.co.bottech.scala2plantuml
 
-import utest.{TestSuite, Tests, test}
+import utest.{test, TestSuite, Tests}
 
 object FieldTests extends TestSuite with ClassDiagramTest {
 
@@ -8,46 +8,51 @@ object FieldTests extends TestSuite with ClassDiagramTest {
 
   val tests: Tests = Tests {
     test("public field") {
-      success("PublicField",
-        """class PublicField {
-          |  + {field} field
-          |}""".stripMargin)
+      success("PublicField#", """class PublicField {
+                               |  + {field} field
+                               |}""".stripMargin)
     }
     test("private field") {
-      success("PrivateField",
-        """class PrivateField {
-          |  - {field} field
-          |}""".stripMargin)
+      success("PrivateField#", """class PrivateField {
+                                |  - {field} field
+                                |}""".stripMargin)
     }
     test("private this field") {
-      success("PrivateThisField",
+      success(
+        "PrivateThisField#",
         """class PrivateThisField {
           |  - {field} field
-          |}""".stripMargin)
+          |}""".stripMargin
+      )
     }
     test("private package field") {
-      success("PrivatePackageField",
+      success(
+        "PrivatePackageField#",
         """class PrivatePackageField {
           |  ~ {field} field
-          |}""".stripMargin)
+          |}""".stripMargin
+      )
     }
     test("protected field") {
-      success("ProtectedField",
-        """class ProtectedField {
-          |  # {field} field
-          |}""".stripMargin)
+      success("ProtectedField#", """class ProtectedField {
+                                  |  # {field} field
+                                  |}""".stripMargin)
     }
     test("protected this field") {
-      success("ProtectedThisField",
+      success(
+        "ProtectedThisField#",
         """class ProtectedThisField {
           |  # {field} field
-          |}""".stripMargin)
+          |}""".stripMargin
+      )
     }
     test("protected package field") {
-      success("ProtectedPackageField",
+      success(
+        "ProtectedPackageField#",
         """class ProtectedPackageField {
           |  # {field} field
-          |}""".stripMargin)
+          |}""".stripMargin
+      )
     }
   }
 }

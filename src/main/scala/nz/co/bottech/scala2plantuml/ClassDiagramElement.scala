@@ -4,10 +4,10 @@ sealed trait ClassDiagramElement {
   def displayName: String
   def symbol: String
 
+  // TODO: This shouldn't be on all elements.
   def isObject: Boolean
 }
 
-// TODO: This is weird. Get rid of it.
 trait NonObject {
   self: ClassDiagramElement =>
   final override val isObject: Boolean = false

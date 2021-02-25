@@ -10,14 +10,14 @@ object ConstructorTests extends TestSuite with ClassDiagramTest {
   val tests: Tests = Tests {
     test("hide constructor") {
       success(
-        "EmptyConstructor",
+        "EmptyConstructor#",
         """class EmptyConstructor""".stripMargin,
         options = TestOptions.copy(constructor = Options.HideConstructors)
       )
     }
     test("show constructor") {
       success(
-        "EmptyConstructor",
+        "EmptyConstructor#",
         """class EmptyConstructor {
           |  + {method} <init>
           |}""".stripMargin,
@@ -26,7 +26,7 @@ object ConstructorTests extends TestSuite with ClassDiagramTest {
     }
     test("constructor type name") {
       success(
-        "EmptyConstructor",
+        "EmptyConstructor#",
         """class EmptyConstructor {
           |  + {method} EmptyConstructor
           |}""".stripMargin,
@@ -35,7 +35,7 @@ object ConstructorTests extends TestSuite with ClassDiagramTest {
     }
     test("constructor stereotype") {
       success(
-        "EmptyConstructor",
+        "EmptyConstructor#",
         """class EmptyConstructor {
           |  + {method} <<Create>> <init>
           |}""".stripMargin,

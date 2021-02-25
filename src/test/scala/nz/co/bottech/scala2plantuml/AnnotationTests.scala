@@ -8,26 +8,27 @@ object AnnotationTests extends TestSuite with ClassDiagramTest {
 
   val tests: Tests = Tests {
     test("annotation") {
-      success("SimpleAnnotation", """annotation SimpleAnnotation""")
+      success("SimpleAnnotation#", """annotation SimpleAnnotation""")
     }
     test("extended annotation") {
-      success("ExtendedAnnotation", """annotation ExtendedAnnotation""")
+      success("ExtendedAnnotation#", """annotation ExtendedAnnotation
+                                      |annotation SimpleAnnotation""".stripMargin)
     }
     test("static annotation") {
-      success("MyStaticAnnotation", """annotation MyStaticAnnotation""")
+      success("MyStaticAnnotation#", """annotation MyStaticAnnotation""")
     }
     test("class annotation") {
-      success("MyClassAnnotation", """annotation MyClassAnnotation""")
+      success("MyClassAnnotation#", """annotation MyClassAnnotation""")
     }
     test("trait annotation") {
       // Interface trumps annotation.
-      success("TraitAnnotation", """interface TraitAnnotation""")
+      success("TraitAnnotation#", """interface TraitAnnotation""")
     }
     test("case class annotation") {
-      success("CaseClassAnnotation", """annotation CaseClassAnnotation""")
+      success("CaseClassAnnotation#", """annotation CaseClassAnnotation""")
     }
     test("object annotation") {
-      success("ObjectAnnotation", """annotation ObjectAnnotation""")
+      success("ObjectAnnotation.", """annotation ObjectAnnotation""")
     }
     // FIXME
 //    test("class annotation") {

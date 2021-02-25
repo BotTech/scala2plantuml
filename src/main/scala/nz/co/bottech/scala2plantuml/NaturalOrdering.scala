@@ -5,7 +5,7 @@ import nz.co.bottech.scala2plantuml.NaturalOrdering.{PartsOrdering, StringOps}
 import java.text.Normalizer
 import scala.annotation.tailrec
 
-class NaturalOrdering extends Ordering[String] {
+private[scala2plantuml] class NaturalOrdering extends Ordering[String] {
 
   override def compare(x: String, y: String): Int =
     PartsOrdering.compare(prepare(x), prepare(y))
@@ -15,7 +15,7 @@ class NaturalOrdering extends Ordering[String] {
 
 }
 
-object NaturalOrdering {
+private[scala2plantuml] object NaturalOrdering {
 
   private object PartsOrdering extends Ordering[Array[String]] {
 

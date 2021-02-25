@@ -8,10 +8,10 @@ object AbstractClassTests extends TestSuite with ClassDiagramTest {
 
   val tests: Tests = Tests {
     test("abstract class") {
-      success("AbstractClass", """abstract class AbstractClass""")
+      success("AbstractClass#", """abstract class AbstractClass""")
     }
     test("sealed abstract class") {
-      success("SealedAbstractClass", """abstract class SealedAbstractClass""")
+      success("SealedAbstractClass#", """abstract class SealedAbstractClass""")
     }
   }
 }

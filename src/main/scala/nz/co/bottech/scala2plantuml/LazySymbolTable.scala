@@ -1,33 +1,32 @@
 package nz.co.bottech.scala2plantuml
 
-import java.util.concurrent.ConcurrentHashMap
+import org.slf4j.LoggerFactory
+
 import scala.collection.concurrent.TrieMap
-import scala.jdk.CollectionConverters._
 import scala.meta.internal.semanticdb.SymbolInformation
 import scala.meta.internal.symtab.SymbolTable
 
-class LazySymbolTable(loader: SemanticDbLoader) extends SymbolTable {
+private[scala2plantuml] class LazySymbolTable(loader: SemanticDbLoader) extends SymbolTable {
 
-  private val cache = TrieMap.empty[String, SymbolInformation]
-  private val loaded      = ConcurrentHashMap.newKeySet[String]().asScala
+  private val logger = LoggerFactory.getLogger(classOf[LazySymbolTable])
+  private val cache  = TrieMap.empty[String, SymbolInformation]
 
   override def info(symbol: String): Option[SymbolInformation] =
-    cache.get(symbol) match {
-      case some: Some[_] => some
-      case None =>
-        loadSymbol(symbol)
-        cache.get(symbol)
-    }
+    if (scalaStdLibSymbol(symbol)) None
+    else
+      cache.get(symbol) match {
+        case some: Some[_] => some
+        case None =>
+          loadSymbol(symbol)
+          cache.get(symbol)
+      }
 
   private def loadSymbol(symbol: String): Unit =
-    if (!loaded.contains(symbol))
-      loaded.synchronized {
-        if (!loaded.contains(symbol)) {
-          loader.load(symbol).foreach { textDocuments =>
-            val symbols = textDocuments.flatMap(_.symbols).map(info => info.symbol -> info)
-            cache.addAll(symbols)
-          }
-          val _ = loaded.add(symbol)
-        }
-      }
+    loader.load(symbol) match {
+      case Left(error) =>
+        logger.warn(error)
+      case Right(textDocuments) =>
+        val symbols = textDocuments.flatMap(_.symbols).map(info => info.symbol -> info)
+        cache.addAll(symbols)
+    }
 }

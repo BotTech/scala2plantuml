@@ -6,7 +6,7 @@ import scala.collection.concurrent.TrieMap
 import scala.meta.internal.semanticdb.{ClassSignature, SymbolInformation, TypeRef, TypeSignature}
 import scala.meta.internal.symtab.SymbolTable
 
-class TypeIndex(symbolTable: SymbolTable) {
+private[scala2plantuml] class TypeIndex(symbolTable: SymbolTable) {
 
   private val logger = LoggerFactory.getLogger(classOf[TypeIndex])
   private val cache  = TrieMap.empty[String, TypeHierarchy]
@@ -31,7 +31,7 @@ class TypeIndex(symbolTable: SymbolTable) {
   private def lookupSymbol(typeRef: TypeRef): SymbolInformation = {
     val symbol = typeRef.symbol
     symbolTable.info(symbol).getOrElse {
-      logger.warn(s"Missing symbol for $symbol")
+      if (!scalaStdLibSymbol(symbol)) logger.warn(s"Missing symbol for $symbol")
       missingSymbol(symbol)
     }
   }

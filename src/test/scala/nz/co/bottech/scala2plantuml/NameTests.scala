@@ -9,23 +9,23 @@ object NameTests extends TestSuite with ClassDiagramTest {
 
   val tests: Tests = Tests {
     test("alphanumeric") {
-      success("AlphaNumericName", """class Foo123""")
+      success("Foo123#", """class Foo123""")
     }
     test("underscore") {
-      success("NameWithUnderscore", """class Foo_123""")
+      success("Foo_123#", """class Foo_123""")
     }
     test("hyphen") {
-      success("NameWithHyphen", """class Foo-123""")
+      success("`Foo-123`#", """class Foo-123""")
     }
     test("space") {
-      success("NameWithSpace", """class "Foo 123"""")
+      success("`Foo 123`#", """class "Foo 123"""")
     }
     test("symbols") {
-      success("NameWithSymbols", """class "Foo!@#$123"""")
+      success("`Foo!@#$123`#", """class "Foo!@#$123"""")
     }
     test("fully qualified") {
       success(
-        "AlphaNumericName",
+        "Foo123#",
         """class nz.co.bottech.scala2plantuml.examples.name.Foo123""",
         TestOptions.copy(naming = Options.FullyQualified)
       )
