@@ -27,7 +27,7 @@ object NameTests extends TestSuite with ClassDiagramTest {
       success(
         "Foo123#",
         """class nz.co.bottech.scala2plantuml.examples.name.Foo123""",
-        TestOptions.copy(naming = Options.FullyQualified)
+        testOptions.copy(naming = Options.FullyQualified)
       )
     }
   }

@@ -12,7 +12,7 @@ object ConstructorTests extends TestSuite with ClassDiagramTest {
       success(
         "EmptyConstructor#",
         """class EmptyConstructor""".stripMargin,
-        options = TestOptions.copy(constructor = Options.HideConstructors)
+        options = testOptions.copy(constructor = Options.HideConstructors)
       )
     }
     test("show constructor") {
@@ -21,7 +21,7 @@ object ConstructorTests extends TestSuite with ClassDiagramTest {
         """class EmptyConstructor {
           |  + {method} <init>
           |}""".stripMargin,
-        options = TestOptions.copy(constructor = Options.ShowConstructors())
+        options = testOptions.copy(constructor = Options.ShowConstructors())
       )
     }
     test("constructor type name") {
@@ -30,7 +30,7 @@ object ConstructorTests extends TestSuite with ClassDiagramTest {
         """class EmptyConstructor {
           |  + {method} EmptyConstructor
           |}""".stripMargin,
-        options = TestOptions.copy(constructor = Options.ShowConstructors(name = Options.constructorTypeName))
+        options = testOptions.copy(constructor = Options.ShowConstructors(name = Options.constructorTypeName))
       )
     }
     test("constructor stereotype") {
@@ -39,7 +39,7 @@ object ConstructorTests extends TestSuite with ClassDiagramTest {
         """class EmptyConstructor {
           |  + {method} <<Create>> <init>
           |}""".stripMargin,
-        options = TestOptions.copy(constructor = Options.ShowConstructors(stereotype = Options.CreateStereotype))
+        options = testOptions.copy(constructor = Options.ShowConstructors(stereotype = Options.CreateStereotype))
       )
     }
   }

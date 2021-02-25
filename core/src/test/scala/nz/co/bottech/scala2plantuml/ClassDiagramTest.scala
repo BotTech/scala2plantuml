@@ -5,14 +5,14 @@ import utest.assert
 
 trait ClassDiagramTest {
 
-  protected val exampleDir: String
+  protected val testOptions: Options = Options.Minimal
 
-  protected val TestOptions: Options = Options.Minimal
+  protected val exampleDir: String
 
   private def globalSymbol(symbol: String) =
     s"nz/co/bottech/scala2plantuml/examples/$exampleDir/$symbol"
 
-  protected def success(name: String, expected: String, options: Options = TestOptions): Unit = {
+  protected def success(name: String, expected: String, options: Options = testOptions): Unit = {
     val result = generateFromTopLevel(name, options).trim
     assert(result == expected)
   }
@@ -21,7 +21,7 @@ trait ClassDiagramTest {
     val elements = ClassDiagramGenerator
       .fromSymbol(
         globalSymbol(symbol),
-        List("META-INF/semanticdb/src/test/scala"),
+        List("META-INF/semanticdb/core/src/test/scala"),
         // TODO: Add tests where we don't ignore these.
         scalaStdLibSymbol,
         this.getClass.getClassLoader
