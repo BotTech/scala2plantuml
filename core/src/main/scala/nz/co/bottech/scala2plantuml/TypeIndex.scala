@@ -11,7 +11,7 @@ private[scala2plantuml] class TypeIndex(symbolTable: SymbolTable) {
   private val logger = LoggerFactory.getLogger(classOf[TypeIndex])
   private val cache  = TrieMap.empty[String, TypeHierarchy]
 
-  def hierarchy(symbolInformation: SymbolInformation): TypeHierarchy =
+  def hierarchy(symbolInformation: SymbolInformation, ignore: String => Boolean): TypeHierarchy =
     cache.getOrElseUpdate(
       symbolInformation.symbol, {
         val parentTypes = symbolInformation.signature match {
@@ -22,19 +22,21 @@ private[scala2plantuml] class TypeIndex(symbolTable: SymbolTable) {
         val parentTypeRefs = parentTypes.collect {
           case typeRef: TypeRef => typeRef
         }
-        val parentSymbols     = parentTypeRefs.map(lookupSymbol)
-        val parentHierarchies = parentSymbols.map(hierarchy)
+        val parentSymbols     = parentTypeRefs.map(lookupSymbol(_, ignore))
+        val parentHierarchies = parentSymbols.map(hierarchy(_, ignore))
         TypeHierarchy(symbolInformation, parentHierarchies)
       }
     )
 
-  private def lookupSymbol(typeRef: TypeRef): SymbolInformation = {
+  private def lookupSymbol(typeRef: TypeRef, ignore: String => Boolean): SymbolInformation = {
     val symbol = typeRef.symbol
-    symbolTable.info(symbol).getOrElse {
-      if (!scalaStdLibSymbol(symbol)) logger.warn(s"Missing symbol for $symbol")
-      missingSymbol(symbol)
-    }
+    if (ignore(symbol)) emptySymbol(symbol)
+    else
+      symbolTable.info(symbol).getOrElse {
+        logger.warn(s"Missing symbol: $symbol")
+        emptySymbol(symbol)
+      }
   }
 
-  private def missingSymbol(symbol: String): SymbolInformation = SymbolInformation(symbol = symbol)
+  private def emptySymbol(symbol: String): SymbolInformation = SymbolInformation(symbol = symbol)
 }

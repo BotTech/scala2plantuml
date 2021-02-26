@@ -4,9 +4,7 @@ import nz.co.bottech.scala2plantuml.ClassDiagramElement._
 import nz.co.bottech.scala2plantuml.ClassDiagramPrinter.Options.Unsorted
 import nz.co.bottech.scala2plantuml.ClassDiagramPrinter._
 
-import java.util.regex.Pattern
 import scala.meta.internal.semanticdb.Scala._
-import scala.util.matching.Regex
 
 private[scala2plantuml] object DiagramModifications {
 
@@ -125,14 +123,6 @@ private[scala2plantuml] object DiagramModifications {
         case Options.NaturalSortOrder => elements.sortBy(_.symbol)(new NaturalOrdering)
         case Options.Unsorted         => elements
       }
-
-    private def patternToRegex(pattern: String): Pattern =
-      Pattern.compile(
-        pattern
-          .split("""\*\*""", -1)
-          .map(_.split("""\*""", -1).map(Regex.quote).mkString("""[^/]*"""))
-          .mkString(""".*""")
-      )
 
     private def longestPrefix(a: String, b: String): String = {
       val i = (0 until math.min(a.length, b.length)).takeWhile { i =>

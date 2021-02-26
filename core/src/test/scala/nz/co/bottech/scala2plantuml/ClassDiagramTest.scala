@@ -23,7 +23,7 @@ trait ClassDiagramTest {
         globalSymbol(symbol),
         List("META-INF/semanticdb/core/src/test/scala"),
         // TODO: Add tests where we don't ignore these.
-        scalaStdLibSymbol,
+        stdLibSymbol,
         this.getClass.getClassLoader
       )
     ClassDiagramPrinter.printSnippet(elements, options)

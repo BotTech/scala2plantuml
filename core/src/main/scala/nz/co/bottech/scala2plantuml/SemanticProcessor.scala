@@ -21,6 +21,11 @@ private[scala2plantuml] object SemanticProcessor {
       typeIndex: TypeIndex,
       definitionIndex: DefinitionIndex
     ): Seq[ClassDiagramElement] = {
+    def skip(symbol: String, seen: HashSet[String]): Boolean =
+      // Only global symbols can be found in the symbol table.
+      !symbol.isGlobal ||
+        seen.contains(symbol) ||
+        ignore(symbol)
     @tailrec
     def loop(
         remaining: Vector[String],
@@ -28,19 +33,19 @@ private[scala2plantuml] object SemanticProcessor {
         acc: Vector[ClassDiagramElement]
       ): Vector[ClassDiagramElement] =
       remaining match {
-        case current +: tail if seen.contains(current) || ignore(current) =>
+        case current +: tail if skip(current, seen) =>
           loop(tail, seen, acc)
         case current +: tail =>
           symbolTable.info(current) match {
             case Some(symbolInformation: SymbolInformation) =>
               logger.trace(symbolInformationString(symbolInformation))
-              val elements = symbolElements(symbolInformation, typeIndex, definitionIndex)
+              val elements = symbolElements(symbolInformation, ignore, typeIndex, definitionIndex)
               // Traverse breadth-first so that we process a full symbol before moving onto the next.
               val nextSymbols = tail ++ symbolReferences(symbolInformation)
               val nextSeen    = seen + current
               loop(nextSymbols, nextSeen, elements ++ acc)
             case None =>
-              if (!scalaStdLibSymbol(current)) logger.warn(s"Missing symbol for $current")
+              logger.warn(s"Missing symbol: $current")
               loop(remaining.init, seen, acc)
           }
         case _ => acc
@@ -60,27 +65,29 @@ private[scala2plantuml] object SemanticProcessor {
 
   private def symbolElements(
       symbolInformation: SymbolInformation,
+      ignore: String => Boolean,
       typeIndex: TypeIndex,
       definitionIndex: DefinitionIndex
     ): Vector[ClassDiagramElement] =
     symbolInformation.signature match {
       case Signature.Empty    => Vector.empty
       case _: ValueSignature  => Vector.empty
-      case _: ClassSignature  => Vector(classElement(symbolInformation, typeIndex))
+      case _: ClassSignature  => Vector(classElement(symbolInformation, ignore, typeIndex))
       case _: MethodSignature => Vector(methodElement(symbolInformation, definitionIndex))
       case _: TypeSignature   => Vector.empty
     }
 
   private def classElement(
       symbolInformation: SymbolInformation,
+      ignore: String => Boolean,
       typeIndex: TypeIndex
     ): ClassDiagramElement = {
     import symbolInformation.{displayName, symbol}
     if (isTrait(symbolInformation))
       Interface(displayName, symbol)
-    else if (isAnnotation(symbolInformation, typeIndex))
+    else if (isAnnotation(symbolInformation, ignore, typeIndex))
       UMLAnnotation(displayName, symbol, isObject = isObject(symbolInformation))
-    else if (isEnum(symbolInformation, typeIndex))
+    else if (isEnum(symbolInformation, ignore, typeIndex))
       Enum(displayName, symbol, isObject = isObject(symbolInformation))
     else if (isAbstract(symbolInformation))
       AbstractClass(displayName, symbol)
@@ -174,15 +181,24 @@ private[scala2plantuml] object SemanticProcessor {
       case PublicAccess()                                  => Visibility.Public
     }
 
-  private def isAnnotation(symbolInformation: SymbolInformation, typeIndex: TypeIndex): Boolean =
-    subTypeOf(symbolInformation, "scala/annotation/Annotation#", typeIndex)
+  private def isAnnotation(
+      symbolInformation: SymbolInformation,
+      ignore: String => Boolean,
+      typeIndex: TypeIndex
+    ): Boolean =
+    subTypeOf(symbolInformation, "scala/annotation/Annotation#", ignore, typeIndex)
 
-  private def isEnum(symbolInformation: SymbolInformation, typeIndex: TypeIndex): Boolean =
-    subTypeOf(symbolInformation, "scala/Enumeration#", typeIndex) ||
-      subTypeOf(symbolInformation, "java/lang/Enum#", typeIndex)
+  private def isEnum(symbolInformation: SymbolInformation, ignore: String => Boolean, typeIndex: TypeIndex): Boolean =
+    subTypeOf(symbolInformation, "scala/Enumeration#", ignore, typeIndex) ||
+      subTypeOf(symbolInformation, "java/lang/Enum#", ignore, typeIndex)
 
-  private def subTypeOf(symbolInformation: SymbolInformation, parent: String, typeIndex: TypeIndex): Boolean = {
-    val hierarchy = typeIndex.hierarchy(symbolInformation)
+  private def subTypeOf(
+      symbolInformation: SymbolInformation,
+      parent: String,
+      ignore: String => Boolean,
+      typeIndex: TypeIndex
+    ): Boolean = {
+    val hierarchy = typeIndex.hierarchy(symbolInformation, ignore)
     hierarchy.subTypeOf(parent)
   }
 

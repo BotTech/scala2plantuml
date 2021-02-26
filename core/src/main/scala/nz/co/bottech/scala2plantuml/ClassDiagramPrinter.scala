@@ -96,7 +96,7 @@ object ClassDiagramPrinter {
 
   def printSnippet(elements: Seq[ClassDiagramElement], options: Options): String = {
     val builder = new StringBuilder
-    def endPrevious(previous: String, next: Option[String], outer: List[String]): List[String] =
+    def endPrevious(previous: String, next: Option[String], outer: List[String]): List[String] = {
       if (next.exists(_.startsWith(previous))) {
         // This is nested under the previous so create an outer scope.
         builder.append(" {\n")
@@ -105,6 +105,8 @@ object ClassDiagramPrinter {
         builder.append("\n")
         outer
       }
+    }
+
     @tailrec
     def closeOuter(next: Option[String], outer: List[String]): List[String] =
       outer match {

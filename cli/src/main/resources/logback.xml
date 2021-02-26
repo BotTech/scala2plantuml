@@ -1,0 +1,16 @@
+<configuration>
+
+    <conversionRule conversionWord="colour"
+                    converterClass="nz.co.bottech.scala2plantuml.ColourConverter" />
+
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <target>System.err</target>
+        <encoder>
+            <pattern>%colour(%-5level %msg) %n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="STDOUT" />
+    </root>
+</configuration>

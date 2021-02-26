@@ -11,17 +11,18 @@ import scala.util.Using
 
 private[scala2plantuml] class SemanticdbLoader(prefixes: Seq[String], classLoader: ClassLoader) {
 
-  type Result = Either[String, Seq[TextDocument]]
+  type Errors = Vector[String]
+  type Result = Either[Errors, Seq[TextDocument]]
 
   private val cache = TrieMap.empty[String, Result]
 
   def load(symbol: String): Result = {
     @tailrec
-    def loop(paths: Seq[String], errors: Vector[String]): Either[Vector[String], Seq[TextDocument]] =
+    def loop(paths: Seq[String], errors: Vector[String]): Result =
       paths match {
         case head +: tail =>
           loadPath(head) match {
-            case Left(error)  => loop(tail, errors :+ error)
+            case Left(error)  => loop(tail, errors ++ error)
             case Right(value) => Right(value)
           }
         case Seq() => Left(errors)
@@ -31,14 +32,17 @@ private[scala2plantuml] class SemanticdbLoader(prefixes: Seq[String], classLoade
         if (prefixes.nonEmpty)
           prefixes.map(prefix => s"$prefix/$path")
         else List(path)
-      loop(paths, Vector.empty).left.map(_.mkString("\n"))
+      loop(paths, Vector.empty)
     }
   }
 
   private def loadPath(path: String): Result =
     loadFilePath(path) match {
-      case left @ Left(_) =>
-        packagePath(path).map(loadDirectoryPath).getOrElse(left)
+      case firstError @ Left(_) =>
+        packagePath(path).map(loadDirectoryPath).getOrElse(firstError) match {
+          case _ @Left(_) => firstError
+          case success    => success
+        }
       case right => right
     }
 
@@ -65,24 +69,24 @@ private[scala2plantuml] class SemanticdbLoader(prefixes: Seq[String], classLoade
             }.flatten.toSeq)
           }
         } else
-          Left(s"Cannot load resources within $resource")
+          Left(Vector(s"Cannot load resources from: $resource"))
       }
     )
 
-  private def getResource(path: String): Either[String, URL] =
+  private def getResource(path: String): Either[Errors, URL] =
     Option(classLoader.getResource(path))
-      .toRight(s"Resource not found: $path")
+      .toRight(Vector(s"Resource not found: $path"))
 
   private def loadResource(inputStream: => InputStream): Result =
     Using(inputStream) { semanticdb =>
       TextDocuments.parseFrom(semanticdb).documents
-    }.toEither.left.map(_.getMessage)
+    }.toEither.left.map(error => Vector(error.getLocalizedMessage))
 
-  private def semanticdbPath(symbol: String): Either[String, String] =
+  private def semanticdbPath(symbol: String): Either[Errors, String] =
     if (symbol.isGlobal)
       Right(s"${symbol.dropRight(1).takeWhile(_ != '#')}.scala.semanticdb")
     else
-      Left("Symbol must be a global symbol.")
+      Left(Vector(s"Symbol is not global: $symbol"))
 
   private def packagePath(path: String): Option[String] = {
     val i = path.lastIndexOf('/')
