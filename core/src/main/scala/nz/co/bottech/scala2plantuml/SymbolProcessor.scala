@@ -1,6 +1,6 @@
 package nz.co.bottech.scala2plantuml
 
-import nz.co.bottech.scala2plantuml.ClassDiagramElement.{Annotation => UMLAnnotation, _}
+import nz.co.bottech.scala2plantuml.ClassDiagramElement.{Annotation => UMLAnnotation, Type => _, _}
 import org.slf4j.LoggerFactory
 
 import scala.annotation.tailrec
