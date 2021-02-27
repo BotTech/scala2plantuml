@@ -9,8 +9,7 @@ import scala.meta.internal.semanticdb.Scala._
 import scala.meta.internal.semanticdb._
 import scala.meta.internal.symtab.SymbolTable
 
-// TODO: Rename this.
-private[scala2plantuml] object SemanticProcessor {
+private[scala2plantuml] object SymbolProcessor {
 
   private val logger = LoggerFactory.getLogger(getClass.getName.dropRight(1))
 
@@ -89,10 +88,8 @@ private[scala2plantuml] object SemanticProcessor {
       UMLAnnotation(displayName, symbol, isObject = isObject(symbolInformation))
     else if (isEnum(symbolInformation, ignore, typeIndex))
       Enum(displayName, symbol, isObject = isObject(symbolInformation))
-    else if (isAbstract(symbolInformation))
-      AbstractClass(displayName, symbol)
     else
-      Class(displayName, symbol, isObject = isObject(symbolInformation))
+      Class(displayName, symbol, isObject(symbolInformation), isAbstract(symbolInformation))
   }
 
   private def methodElement(
@@ -102,14 +99,15 @@ private[scala2plantuml] object SemanticProcessor {
     import symbolInformation.{displayName, symbol}
     val visibility = symbolVisibility(symbolInformation)
     if (isField(symbolInformation))
-      Field(displayName, symbol, visibility)
+      Field(displayName, symbol, visibility, isAbstract(symbolInformation))
     else
       Method(
         displayName,
         symbol,
         visibility,
         isConstructor(symbolInformation),
-        isSynthetic(symbolInformation.symbol, definitionIndex)
+        isSynthetic(symbolInformation.symbol, definitionIndex),
+        isAbstract(symbolInformation)
       )
   }
 

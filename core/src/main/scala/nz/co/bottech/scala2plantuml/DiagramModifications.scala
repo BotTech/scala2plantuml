@@ -55,7 +55,13 @@ private[scala2plantuml] object DiagramModifications {
                   if (previousType.exists(_.symbol == parent)) loop(tail, previousType, acc :+ head)
                   else {
                     // TODO: Do we need to caching this?
-                    def createParent  = Class(scalaTypeName(symbolToScalaIdentifier(parent)), parent, isObject = false)
+                    def createParent =
+                      Class(
+                        scalaTypeName(symbolToScalaIdentifier(parent)),
+                        parent,
+                        isObject = false,
+                        isAbstract = false
+                      )
                     val parentElement = types.getOrElse(parent, createParent)
                     loop(tail, Some(parentElement), acc :+ parentElement :+ head)
                   }

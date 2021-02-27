@@ -141,20 +141,18 @@ object ClassDiagramPrinter {
 
   private def printElementStart(element: ClassDiagramElement, outer: Option[ClassDiagramElement]): String =
     element match {
-      case uml: AbstractClass =>
-        s"abstract class ${quoteName(uml.displayName)}"
       case uml: Annotation =>
         s"annotation ${quoteName(uml.displayName)}"
       case uml: Class =>
-        s"class ${quoteName(uml.displayName)}"
+        s"${printAbstract(element)}class ${quoteName(uml.displayName)}"
       case uml: Enum =>
         s"enum ${quoteName(uml.displayName)}"
       case uml: Field =>
-        s"${printVisibility(uml.visibility)} ${printStatic(outer)}{field} ${uml.displayName}"
+        s"${printVisibility(uml.visibility)} ${printModifier(element, outer)}{field} ${uml.displayName}"
       case uml: Interface =>
         s"interface ${quoteName(uml.displayName)}"
       case uml: Method =>
-        s"${printVisibility(uml.visibility)} ${printStatic(outer)}{method} ${uml.displayName}"
+        s"${printVisibility(uml.visibility)} ${printModifier(element, outer)}{method} ${uml.displayName}"
     }
 
   private def printVisibility(visibility: Visibility): String =
@@ -165,8 +163,13 @@ object ClassDiagramPrinter {
       case Visibility.Public         => "+"
     }
 
-  private def printStatic(outer: Option[ClassDiagramElement]): String =
-    if (outer.exists(_.isObject)) "{static} " else ""
+  private def printAbstract(element: ClassDiagramElement): String =
+    if (element.isAbstract) "abstract " else ""
+
+  private def printModifier(element: ClassDiagramElement, outer: Option[ClassDiagramElement]): String =
+    if (outer.exists(_.isObject)) "{static} "
+    else if (element.isAbstract) "{abstract} "
+    else ""
 
   private def quoteName(name: String): String =
     if (SomewhatSensibleName.pattern.matcher(name).matches()) name

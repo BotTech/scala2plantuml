@@ -15,7 +15,7 @@ object ClassDiagramGenerator {
     val symbolTable     = aggregateSymbolTable(loader)
     val typeIndex       = new TypeIndex(symbolTable)
     val definitionIndex = new DefinitionIndex(loader)
-    SemanticProcessor.processSymbol(symbol, ignore, symbolTable, typeIndex, definitionIndex)
+    SymbolProcessor.processSymbol(symbol, ignore, symbolTable, typeIndex, definitionIndex)
   }
 
   private def aggregateSymbolTable(loader: SemanticdbLoader) =
