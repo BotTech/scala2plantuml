@@ -55,7 +55,7 @@ object ClassDiagramPrinter {
     )
 
     def constructorTypeName(element: ClassDiagramElement): String =
-      scalaTypeName(symbolToScalaIdentifier(element.parentSymbol))
+      scalaTypeName(symbolToScalaIdentifier(element.ownerSymbol))
 
     sealed trait CompanionObjectsOption
     case object CombineAsStatic extends CompanionObjectsOption
@@ -97,7 +97,7 @@ object ClassDiagramPrinter {
   def printSnippet(elements: Seq[ClassDiagramElement], options: Options): String = {
     val builder = new StringBuilder
     def nest(outer: ClassDiagramElement, current: ClassDiagramElement): Boolean =
-      current.isMember && outer.isParentOf(current)
+      current.isMember && outer.owns(current)
     @tailrec
     def loop(
         remaining: Seq[ClassDiagramElement],

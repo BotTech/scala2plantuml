@@ -13,8 +13,8 @@ sealed trait ClassDiagramElement {
 
   def rename(displayName: String): ClassDiagramElement
 
-  def isParentOf(child: ClassDiagramElement): Boolean = child.parentSymbol == symbol
-  def parentSymbol: String                            = symbol.ownerChain.takeRight(2).headOption.getOrElse(symbol)
+  def owns(child: ClassDiagramElement): Boolean = child.ownerSymbol == symbol
+  def ownerSymbol: String                       = symbol.ownerChain.takeRight(2).headOption.getOrElse(symbol)
 }
 
 object ClassDiagramElement {
