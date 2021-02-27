@@ -9,31 +9,44 @@ import scala.meta.internal.semanticdb.Scala._
 
 private[scala2plantuml] object DiagramModifications {
 
-  implicit class FluidOptions(val elements: Seq[ClassDiagramElement]) extends AnyVal {
+  final case class ElementsWithNames(elements: Seq[ClassDiagramElement], names: Map[String, String])
 
-    def removeHidden(implicit options: Options): Seq[ClassDiagramElement] =
+  implicit class FluidOptions(val elementsWithNames: ElementsWithNames) extends AnyVal {
+
+    import elementsWithNames._
+
+    def removeHidden(implicit options: Options): ElementsWithNames =
       options.hide match {
-        case Options.ShowAll => elements
         case Options.HideMatching(patterns) =>
-          val tests = patterns.map(patternToRegex(_).asMatchPredicate)
-          val result = elements.filterNot { element =>
-            tests.exists(_.test(element.symbol))
+          val tests                         = patterns.map(patternToRegex(_).asMatchPredicate)
+          def hide(symbol: String): Boolean = tests.exists(_.test(symbol))
+          val newElements = elements.filterNot(element => hide(element.symbol)).map {
+            case typ: Type =>
+              val newParents = typ.parentSymbols.filterNot(hide)
+              typ match {
+                case annotation: Annotation => annotation.copy(parentSymbols = newParents)
+                case clazz: Class           => clazz.copy(parentSymbols = newParents)
+                case enum: Enum             => enum.copy(parentSymbols = newParents)
+                case interface: Interface   => interface.copy(parentSymbols = newParents)
+              }
+            case element => element
           }
-          result
+          elementsWithNames.copy(elements = newElements)
+        case Options.ShowAll => elementsWithNames
       }
 
-    def removeSynthetics(implicit options: Options): Seq[ClassDiagramElement] =
+    def removeSynthetics(implicit options: Options): ElementsWithNames =
       options.syntheticMethods match {
         case Options.HideSyntheticMethods =>
-          elements.filterNot {
+          val newElements = elements.filterNot {
             case method: Method => !method.constructor && method.synthetic
             case _              => false
           }
-        case Options.ShowSyntheticMethods =>
-          elements
+          elementsWithNames.copy(elements = newElements)
+        case Options.ShowSyntheticMethods => elementsWithNames
       }
 
-    def addMissingElements(implicit options: Options): Seq[ClassDiagramElement] =
+    def addMissingElements(implicit options: Options): ElementsWithNames =
       options.sorting match {
         case Unsorted =>
           // Fields may appear before their parents so we may need to insert duplicate parents and we have to do that
@@ -60,7 +73,8 @@ private[scala2plantuml] object DiagramModifications {
                         scalaTypeName(symbolToScalaIdentifier(owner)),
                         owner,
                         isObject = false,
-                        isAbstract = false
+                        isAbstract = false,
+                        Seq.empty
                       )
                     val ownerElement = types.getOrElse(owner, createClass)
                     loop(tail, Some(ownerElement), acc :+ ownerElement :+ head)
@@ -69,37 +83,21 @@ private[scala2plantuml] object DiagramModifications {
                   loop(tail, previousType, acc :+ head)
               case _ => acc
             }
-          loop(elements, None, Vector.empty)
-        case _ => elements
+          val newElements = loop(elements, None, Vector.empty)
+          elementsWithNames.copy(elements = newElements)
+        case _ => elementsWithNames
       }
 
-    def combineCompanionObjects(implicit options: Options): Seq[ClassDiagramElement] =
-      options.companionObjects match {
-        case Options.CombineAsStatic =>
-          val nonObjectNames =
-            elements
-              .filterNot(_.isObject)
-              .map(element => symbolToScalaIdentifier(element.symbol))
-              .toSet
-          elements.filterNot(element =>
-            element.isObject && nonObjectNames.contains(symbolToScalaIdentifier(element.symbol))
-          )
-        case Options.SeparateClasses =>
-          elements.map { element =>
-            if (element.isObject) element.rename(s"${element.displayName}$$")
-            else element
-          }
-      }
-
-    def rename(implicit options: Options): Seq[ClassDiagramElement] =
-      options.naming match {
+    def calculateNames(implicit options: Options): ElementsWithNames = {
+      assert(names.isEmpty)
+      val newNames = options.naming match {
         case Options.FullyQualified =>
           elements.map { element =>
             val displayName =
               if (element.isType) symbolToScalaIdentifier(element.symbol).replace("`", "")
               else element.displayName
-            element.rename(displayName)
-          }
+            element.symbol -> displayName
+          }.toMap
         case Options.RemoveCommonPrefix =>
           // FIXME: This will probably break links to types in other packages.
           val firstPrefix = elements.headOption.map { element =>
@@ -113,32 +111,61 @@ private[scala2plantuml] object DiagramModifications {
             val displayName =
               if (element.isType) symbolToScalaIdentifier(element.symbol.drop(commonPrefix.length)).replace("`", "")
               else element.displayName
-            element.rename(displayName)
+            element.symbol -> displayName
+          }.toMap
+      }
+      elementsWithNames.copy(names = newNames)
+    }
+
+    def combineCompanionObjects(implicit options: Options): ElementsWithNames =
+      options.companionObjects match {
+        case Options.CombineAsStatic =>
+          val nonObjectNames =
+            elements
+              .filterNot(_.isObject)
+              .map(element => symbolToScalaIdentifier(element.symbol))
+              .toSet
+          val newElements = elements.filterNot(element =>
+            element.isObject && nonObjectNames.contains(symbolToScalaIdentifier(element.symbol))
+          )
+          elementsWithNames.copy(elements = newElements)
+        case Options.SeparateClasses =>
+          val newNames = elements.foldLeft(names) {
+            case (names, element) if element.isObject =>
+              val symbol = element.symbol
+              val name   = names.getOrElse(symbol, element.displayName)
+              names.updated(symbol, s"$name$$")
+            case (names, _) => names
           }
+          elementsWithNames.copy(names = newNames)
       }
 
-    def updateConstructors(implicit options: Options): Seq[ClassDiagramElement] =
+    def updateConstructors(implicit options: Options): ElementsWithNames =
       options.constructor match {
         case Options.HideConstructors =>
-          elements.filterNot {
+          val newElements = elements.filterNot {
             case method: Method => method.constructor
             case _              => false
           }
+          elementsWithNames.copy(elements = newElements)
         case Options.ShowConstructors(stereotype, name) =>
-          elements.map {
-            case method: Method if method.constructor =>
+          val newNames = elements.foldLeft(names) {
+            case (names, method: Method) if method.constructor =>
               val newName            = name(method)
               val nameWithStereotype = stereotype.map(s => s"<<$s>> $newName").getOrElse(newName)
-              method.copy(displayName = nameWithStereotype)
-            case element => element
+              names.updated(method.symbol, nameWithStereotype)
+            case (names, _) => names
           }
+          elementsWithNames.copy(names = newNames)
       }
 
-    def sort(implicit options: Options): Seq[ClassDiagramElement] =
-      options.sorting match {
+    def sort(implicit options: Options): ElementsWithNames = {
+      val newElements = options.sorting match {
         case Options.NaturalSortOrder => elements.sortBy(_.symbol)(new NaturalOrdering)
         case Options.Unsorted         => elements
       }
+      elementsWithNames.copy(elements = newElements)
+    }
 
     private def longestPrefix(a: String, b: String): String = {
       val i = (0 until math.min(a.length, b.length)).takeWhile { i =>
@@ -148,8 +175,11 @@ private[scala2plantuml] object DiagramModifications {
     }
   }
 
-  def apply(elements: Seq[ClassDiagramElement], options: Options): Seq[ClassDiagramElement] = {
+  def apply(elements: Seq[ClassDiagramElement], options: Options): ElementsWithNames = {
     implicit val opts: Options = options
-    elements.removeHidden.removeSynthetics.addMissingElements.combineCompanionObjects.rename.updateConstructors.sort
+    ElementsWithNames(
+      elements,
+      Map.empty
+    ).removeHidden.removeSynthetics.addMissingElements.calculateNames.combineCompanionObjects.updateConstructors.sort
   }
 }

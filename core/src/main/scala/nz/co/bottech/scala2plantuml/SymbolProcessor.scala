@@ -69,27 +69,29 @@ private[scala2plantuml] object SymbolProcessor {
       definitionIndex: DefinitionIndex
     ): Vector[ClassDiagramElement] =
     symbolInformation.signature match {
-      case Signature.Empty    => Vector.empty
-      case _: ValueSignature  => Vector.empty
-      case _: ClassSignature  => Vector(classElement(symbolInformation, ignore, typeIndex))
-      case _: MethodSignature => Vector(methodElement(symbolInformation, definitionIndex))
-      case _: TypeSignature   => Vector.empty
+      case Signature.Empty       => Vector.empty
+      case _: ValueSignature     => Vector.empty
+      case clazz: ClassSignature => Vector(classElement(symbolInformation, clazz, ignore, typeIndex))
+      case _: MethodSignature    => Vector(methodElement(symbolInformation, definitionIndex))
+      case _: TypeSignature      => Vector.empty
     }
 
   private def classElement(
       symbolInformation: SymbolInformation,
+      clazz: ClassSignature,
       ignore: String => Boolean,
       typeIndex: TypeIndex
     ): ClassDiagramElement = {
     import symbolInformation.{displayName, symbol}
+    val parentSymbols = clazz.parents.flatMap(typeSymbols)
     if (isTrait(symbolInformation))
-      Interface(displayName, symbol)
+      Interface(displayName, symbol, parentSymbols)
     else if (isAnnotation(symbolInformation, ignore, typeIndex))
-      UMLAnnotation(displayName, symbol, isObject = isObject(symbolInformation))
+      UMLAnnotation(displayName, symbol, isObject(symbolInformation), parentSymbols)
     else if (isEnum(symbolInformation, ignore, typeIndex))
-      Enum(displayName, symbol, isObject = isObject(symbolInformation))
+      Enum(displayName, symbol, isObject(symbolInformation), parentSymbols)
     else
-      Class(displayName, symbol, isObject(symbolInformation), isAbstract(symbolInformation))
+      Class(displayName, symbol, isObject(symbolInformation), isAbstract(symbolInformation), parentSymbols)
   }
 
   private def methodElement(
@@ -147,23 +149,48 @@ private[scala2plantuml] object SymbolProcessor {
 
   private def typeReferences(typ: Type): Seq[String] =
     typ match {
-      case Type.Empty                         => Seq.empty
-      case WithType(types)                    => types.flatMap(typeReferences)
-      case UnionType(types)                   => types.flatMap(typeReferences)
-      case _: ConstantType                    => Seq.empty
+      case Type.Empty       => Seq.empty
+      case WithType(types)  => types.flatMap(typeReferences)
+      case UnionType(types) => types.flatMap(typeReferences)
+      case _: ConstantType  =>
+        // TODO: Need to do something better here.
+        Seq.empty
       case RepeatedType(tpe)                  => typeReferences(tpe)
-      case ExistentialType(tpe, declarations) => typeReferences(tpe) ++ optionalScopeReferences(declarations)
-      case TypeRef(prefix, symbol, typeArguments) =>
-        symbol +: typeReferences(prefix) ++: typeArguments.flatMap(typeReferences)
-      case SingleType(prefix, symbol)         => symbol +: typeReferences(prefix)
+      case ExistentialType(tpe, declarations) =>
+        // TODO: Existential types ought to be shown as their own type.
+        typeReferences(tpe) ++ optionalScopeReferences(declarations)
+      case TypeRef(_, symbol, typeArguments) =>
+        symbol +: typeArguments.flatMap(typeReferences)
+      case SingleType(_, symbol)              => Seq(symbol)
       case UniversalType(typeParameters, tpe) => typeReferences(tpe) ++ optionalScopeReferences(typeParameters)
       case IntersectionType(types)            => types.flatMap(typeReferences)
       case ByNameType(tpe)                    => typeReferences(tpe)
       case ThisType(symbol)                   => Seq(symbol)
       case AnnotatedType(annotations, tpe) =>
         typeReferences(tpe) ++ annotations.flatMap(annotation => typeReferences(annotation.tpe))
-      case SuperType(prefix, symbol)         => symbol +: typeReferences(prefix)
+      case SuperType(_, symbol)              => Seq(symbol)
       case StructuralType(tpe, declarations) => typeReferences(tpe) ++ optionalScopeReferences(declarations)
+    }
+
+  private def typeSymbols(typ: Type): Seq[String] =
+    typ match {
+      case Type.Empty       => Seq.empty
+      case WithType(types)  => types.flatMap(typeSymbols)
+      case UnionType(types) => types.flatMap(typeSymbols)
+      case _: ConstantType  =>
+        // TODO: Need to do something better here.
+        Seq.empty
+      case RepeatedType(tpe)       => typeSymbols(tpe)
+      case ExistentialType(tpe, _) => typeSymbols(tpe)
+      case TypeRef(_, symbol, _)   => Seq(symbol)
+      case SingleType(_, symbol)   => Seq(symbol)
+      case UniversalType(_, tpe)   => typeSymbols(tpe)
+      case IntersectionType(types) => types.flatMap(typeSymbols)
+      case ByNameType(tpe)         => typeSymbols(tpe)
+      case ThisType(symbol)        => Seq(symbol)
+      case AnnotatedType(_, tpe)   => typeSymbols(tpe)
+      case SuperType(_, symbol)    => Seq(symbol)
+      case StructuralType(tpe, _)  => typeSymbols(tpe)
     }
 
   private def symbolVisibility(symbolInformation: SymbolInformation): Visibility =

@@ -4,7 +4,6 @@ import nz.co.bottech.scala2plantuml.ClassDiagramElement._
 import nz.co.bottech.scala2plantuml.ClassDiagramPrinter.Options._
 
 import scala.annotation.tailrec
-import scala.meta.internal.semanticdb.Scala._
 
 object ClassDiagramPrinter {
 
@@ -95,7 +94,8 @@ object ClassDiagramPrinter {
        |@enduml""".stripMargin
 
   def printSnippet(elements: Seq[ClassDiagramElement], options: Options): String = {
-    val builder = new StringBuilder
+    val elementsWithNames = DiagramModifications(elements, options)
+    val builder           = new StringBuilder
     def nest(outer: ClassDiagramElement, current: ClassDiagramElement): Boolean =
       current.isMember && outer.owns(current)
     @tailrec
@@ -120,7 +120,7 @@ object ClassDiagramPrinter {
           builder.append('\n')
           if (nested) builder.append("  ")
           val nextOuter = if (nested) outer.orElse(previous) else None
-          builder.append(printElementStart(head, nextOuter))
+          builder.append(printElementStart(head, nextOuter, elementsWithNames.names))
           loop(tail, Some(head), nextOuter)
         case Seq() =>
           if (outer.nonEmpty) builder.append("\n}")
@@ -128,31 +128,61 @@ object ClassDiagramPrinter {
           builder.toString
       }
 
-    val updatedElements = DiagramModifications(elements, options)
-    loop(updatedElements, None, None)
+    loop(elementsWithNames.elements, None, None)
   }
 
-  def symbolToScalaIdentifier(symbol: String): String =
-    if (symbol.isGlobal) symbol.replace('/', '.').dropRight(1)
-    else symbol.replace('/', '.')
-
-  def scalaTypeName(identifier: String): String =
-    identifier.split('.').last.split('#').head
-
-  private def printElementStart(element: ClassDiagramElement, outer: Option[ClassDiagramElement]): String =
+  private def printElementStart(
+      element: ClassDiagramElement,
+      outer: Option[ClassDiagramElement],
+      names: Map[String, String]
+    ): String =
     element match {
-      case uml: Annotation =>
-        s"annotation ${quoteName(uml.displayName)}"
-      case uml: Class =>
-        s"${printAbstract(element)}class ${quoteName(uml.displayName)}"
-      case uml: Enum =>
-        s"enum ${quoteName(uml.displayName)}"
-      case uml: Field =>
-        s"${printVisibility(uml.visibility)} ${printModifier(element, outer)}{field} ${uml.displayName}"
-      case uml: Interface =>
-        s"interface ${quoteName(uml.displayName)}"
-      case uml: Method =>
-        s"${printVisibility(uml.visibility)} ${printModifier(element, outer)}{method} ${uml.displayName}"
+      case typ: Type      => printType(typ, names)
+      case member: Member => printMember(member, outer, names)
+    }
+
+  private def printType(typ: Type, names: Map[String, String]): String = {
+    val name          = quoteName(printName(typ, names))
+    val extendsClause = printExtends(typ, names)
+    val prefix = typ match {
+      case _: Annotation => "annotation"
+      case clazz: Class  => s"${printAbstract(clazz)}class"
+      case _: Enum       => "enum"
+      case _: Interface  => "interface"
+    }
+    s"$prefix $name$extendsClause"
+  }
+
+  private def printAbstract(clazz: Class): String =
+    if (clazz.isAbstract) "abstract " else ""
+
+  private def printExtends(typ: Type, names: Map[String, String]): String =
+    if (typ.parentSymbols.nonEmpty) {
+      val parents = typ.parentSymbols.map { symbol =>
+        quoteName(names.getOrElse(symbol, symbolToScalaIdentifier(symbol)))
+      }.mkString(", ")
+      s" extends $parents"
+    } else ""
+
+  private def quoteName(name: String): String =
+    if (SomewhatSensibleName.pattern.matcher(name).matches()) name
+    else s""""$name""""
+
+  private def printMember(member: Member, outer: Option[ClassDiagramElement], names: Map[String, String]) = {
+    val additionalModifier = printAdditionalModifier(member, outer)
+    val memberModifier     = printMemberModifier(member)
+    val visibility         = printVisibility(member.visibility)
+    val name               = printName(member, names)
+    s"$visibility $additionalModifier{$memberModifier} $name"
+  }
+
+  private def printName(element: ClassDiagramElement, names: Map[String, String]) =
+    names.getOrElse(element.symbol, element.displayName)
+
+  private def printMemberModifier(member: Member): String =
+    member match {
+      case _: Field  => "field"
+      case _: Method => "method"
     }
 
   private def printVisibility(visibility: Visibility): String =
@@ -163,15 +193,8 @@ object ClassDiagramPrinter {
       case Visibility.Public         => "+"
     }
 
-  private def printAbstract(element: ClassDiagramElement): String =
-    if (element.isAbstract) "abstract " else ""
-
-  private def printModifier(element: ClassDiagramElement, outer: Option[ClassDiagramElement]): String =
+  private def printAdditionalModifier(member: Member, outer: Option[ClassDiagramElement]): String =
     if (outer.exists(_.isObject)) "{static} "
-    else if (element.isAbstract) "{abstract} "
+    else if (member.isAbstract) "{abstract} "
     else ""
-
-  private def quoteName(name: String): String =
-    if (SomewhatSensibleName.pattern.matcher(name).matches()) name
-    else s""""$name""""
 }

@@ -11,7 +11,7 @@ object AnnotationTests extends TestSuite with ClassDiagramTests {
       success("SimpleAnnotation#", """annotation SimpleAnnotation""")
     }
     test("extended annotation") {
-      success("ExtendedAnnotation#", """annotation ExtendedAnnotation
+      success("ExtendedAnnotation#", """annotation ExtendedAnnotation extends SimpleAnnotation
                                       |annotation SimpleAnnotation""".stripMargin)
     }
     test("static annotation") {
@@ -30,7 +30,7 @@ object AnnotationTests extends TestSuite with ClassDiagramTests {
     test("object annotation") {
       success("ObjectAnnotation.", """annotation ObjectAnnotation""")
     }
-    // FIXME
+    // TODO: Support Java types.
 //    test("class annotation") {
 //      success("MyJavaAnnotation", """annotation MyJavaAnnotation""")
 //    }
