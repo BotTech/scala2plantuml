@@ -1,30 +1,51 @@
 package nz.co.bottech.scala2plantuml
 
+import scala.meta.internal.semanticdb.Scala._
+
 sealed trait ClassDiagramElement {
   def displayName: String
   def symbol: String
+
+  def isObject: Boolean
+  def isType: Boolean
+  def isMember: Boolean
+
+  def rename(displayName: String): ClassDiagramElement
+
+  def isParentOf(child: ClassDiagramElement): Boolean = child.parentSymbol == symbol
+  def parentSymbol: String                            = symbol.ownerChain.takeRight(2).headOption.getOrElse(symbol)
 }
 
 object ClassDiagramElement {
 
-  def isObject(element: ClassDiagramElement): Boolean =
-    element match {
-      case _: AbstractClass       => false
-      case annotation: Annotation => annotation.isObject
-      case clazz: Class           => clazz.isObject
-      case enm: Enum              => enm.isObject
-      case _: Field               => false
-      case _: Interface           => false
-      case _: Method              => false
-    }
+  final case class AbstractClass(displayName: String, symbol: String) extends ClassDiagramElement {
+    override val isObject: Boolean = false
+    override val isType: Boolean   = true
+    override val isMember: Boolean = false
 
-  final case class AbstractClass(displayName: String, symbol: String) extends ClassDiagramElement
+    override def rename(displayName: String): ClassDiagramElement = copy(displayName = displayName)
+  }
 
-  final case class Annotation(displayName: String, symbol: String, isObject: Boolean) extends ClassDiagramElement
+  final case class Annotation(displayName: String, symbol: String, isObject: Boolean) extends ClassDiagramElement {
+    override val isType: Boolean   = true
+    override val isMember: Boolean = false
 
-  final case class Class(displayName: String, symbol: String, isObject: Boolean) extends ClassDiagramElement
+    override def rename(displayName: String): ClassDiagramElement = copy(displayName = displayName)
+  }
 
-  final case class Enum(displayName: String, symbol: String, isObject: Boolean) extends ClassDiagramElement
+  final case class Class(displayName: String, symbol: String, isObject: Boolean) extends ClassDiagramElement {
+    override val isType: Boolean   = true
+    override val isMember: Boolean = false
+
+    override def rename(displayName: String): ClassDiagramElement = copy(displayName = displayName)
+  }
+
+  final case class Enum(displayName: String, symbol: String, isObject: Boolean) extends ClassDiagramElement {
+    override val isType: Boolean   = true
+    override val isMember: Boolean = false
+
+    override def rename(displayName: String): ClassDiagramElement = copy(displayName = displayName)
+  }
 
   sealed trait Visibility
 
@@ -35,9 +56,21 @@ object ClassDiagramElement {
     case object Public         extends Visibility
   }
 
-  final case class Field(displayName: String, symbol: String, visibility: Visibility) extends ClassDiagramElement
+  final case class Field(displayName: String, symbol: String, visibility: Visibility) extends ClassDiagramElement {
+    override val isObject: Boolean = false
+    override val isType: Boolean   = false
+    override val isMember: Boolean = true
 
-  final case class Interface(displayName: String, symbol: String) extends ClassDiagramElement
+    override def rename(displayName: String): ClassDiagramElement = copy(displayName = displayName)
+  }
+
+  final case class Interface(displayName: String, symbol: String) extends ClassDiagramElement {
+    override val isObject: Boolean = false
+    override val isType: Boolean   = true
+    override val isMember: Boolean = false
+
+    override def rename(displayName: String): ClassDiagramElement = copy(displayName = displayName)
+  }
 
   final case class Method(
       displayName: String,
@@ -45,5 +78,11 @@ object ClassDiagramElement {
       visibility: Visibility,
       constructor: Boolean,
       synthetic: Boolean)
-      extends ClassDiagramElement
+      extends ClassDiagramElement {
+    override val isObject: Boolean = false
+    override val isType: Boolean   = false
+    override val isMember: Boolean = true
+
+    override def rename(displayName: String): ClassDiagramElement = copy(displayName = displayName)
+  }
 }

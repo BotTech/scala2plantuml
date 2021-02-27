@@ -2,7 +2,7 @@ package nz.co.bottech.scala2plantuml
 
 import utest.{test, TestSuite, Tests}
 
-object AbstractClassTests extends TestSuite with ClassDiagramTest {
+object AbstractClassTests extends TestSuite with ClassDiagramTests {
 
   override protected val exampleDir: String = "abstractclass"
 

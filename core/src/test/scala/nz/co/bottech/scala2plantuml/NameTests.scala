@@ -3,7 +3,7 @@ package nz.co.bottech.scala2plantuml
 import nz.co.bottech.scala2plantuml.ClassDiagramPrinter.Options
 import utest.{test, TestSuite, Tests}
 
-object NameTests extends TestSuite with ClassDiagramTest {
+object NameTests extends TestSuite with ClassDiagramTests {
 
   override protected val exampleDir: String = "name"
 

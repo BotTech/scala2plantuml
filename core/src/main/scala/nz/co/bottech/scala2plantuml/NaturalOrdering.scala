@@ -7,8 +7,15 @@ import scala.annotation.tailrec
 
 private[scala2plantuml] class NaturalOrdering extends Ordering[String] {
 
-  override def compare(x: String, y: String): Int =
-    PartsOrdering.compare(prepare(x), prepare(y))
+  override def compare(x: String, y: String): Int = {
+    // Ensure that nested types come after all other members.
+    val xLevel = level(x)
+    val yLevel = level(y)
+    if (xLevel != yLevel) xLevel - yLevel
+    else PartsOrdering.compare(prepare(x), prepare(y))
+  }
+
+  private def level(s: String): Int = s.count(_ == '#')
 
   private def prepare(str: String): Array[String] =
     str.compressWhitespace.normalize.separate

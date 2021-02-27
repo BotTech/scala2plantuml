@@ -4,6 +4,7 @@ import nz.co.bottech.scala2plantuml.ClassDiagramElement._
 import nz.co.bottech.scala2plantuml.ClassDiagramPrinter.Options.Unsorted
 import nz.co.bottech.scala2plantuml.ClassDiagramPrinter._
 
+import scala.annotation.tailrec
 import scala.meta.internal.semanticdb.Scala._
 
 private[scala2plantuml] object DiagramModifications {
@@ -32,20 +33,54 @@ private[scala2plantuml] object DiagramModifications {
           elements
       }
 
+    def addMissingElements(implicit options: Options): Seq[ClassDiagramElement] =
+      options.sorting match {
+        case Unsorted =>
+          // Fields may appear before their parents so we may need to insert duplicate parents and we have to do that
+          // before other operations like renaming.
+          val types = elements.filter(_.symbol.isType).map(element => element.symbol -> element).toMap
+          @tailrec
+          def loop(
+              remaining: Seq[ClassDiagramElement],
+              previousType: Option[ClassDiagramElement],
+              acc: Vector[ClassDiagramElement]
+            ): Vector[ClassDiagramElement] =
+            remaining match {
+              case head +: tail =>
+                if (head.isType) {
+                  val nextAcc = if (previousType.exists(_.symbol == head.symbol)) acc else acc :+ head
+                  loop(tail, Some(head), nextAcc)
+                } else if (head.isMember) {
+                  val parent = head.parentSymbol
+                  if (previousType.exists(_.symbol == parent)) loop(tail, previousType, acc :+ head)
+                  else {
+                    // TODO: Do we need to caching this?
+                    def createParent  = Class(scalaTypeName(symbolToScalaIdentifier(parent)), parent, isObject = false)
+                    val parentElement = types.getOrElse(parent, createParent)
+                    loop(tail, Some(parentElement), acc :+ parentElement :+ head)
+                  }
+                } else
+                  loop(tail, previousType, acc :+ head)
+              case _ => acc
+            }
+          loop(elements, None, Vector.empty)
+        case _ => elements
+      }
+
     def combineCompanionObjects(implicit options: Options): Seq[ClassDiagramElement] =
       options.companionObjects match {
         case Options.CombineAsStatic =>
           val nonObjectNames =
             elements
-              .filterNot(ClassDiagramElement.isObject)
+              .filterNot(_.isObject)
               .map(element => symbolToScalaIdentifier(element.symbol))
               .toSet
           elements.filterNot(element =>
-            ClassDiagramElement.isObject(element) && nonObjectNames.contains(symbolToScalaIdentifier(element.symbol))
+            element.isObject && nonObjectNames.contains(symbolToScalaIdentifier(element.symbol))
           )
         case Options.SeparateClasses =>
           elements.map { element =>
-            if (ClassDiagramElement.isObject(element)) renameElement(element, _.displayName + "$")
+            if (element.isObject) element.rename(s"${element.displayName}$$")
             else element
           }
       }
@@ -53,7 +88,12 @@ private[scala2plantuml] object DiagramModifications {
     def rename(implicit options: Options): Seq[ClassDiagramElement] =
       options.naming match {
         case Options.FullyQualified =>
-          elements.map(renameElement(_, element => symbolToScalaIdentifier(element.symbol).replace("`", "")))
+          elements.map { element =>
+            val displayName =
+              if (element.isType) symbolToScalaIdentifier(element.symbol).replace("`", "")
+              else element.displayName
+            element.rename(displayName)
+          }
         case Options.RemoveCommonPrefix =>
           // FIXME: This will probably break links to types in other packages.
           val firstPrefix = elements.headOption.map { element =>
@@ -63,12 +103,12 @@ private[scala2plantuml] object DiagramModifications {
           val commonPrefix = elements.foldLeft(firstPrefix) {
             case (prefix, element) => longestPrefix(prefix, element.symbol)
           }
-          elements.map(
-            renameElement(
-              _,
-              element => symbolToScalaIdentifier(element.symbol.drop(commonPrefix.length)).replace("`", "")
-            )
-          )
+          elements.map { element =>
+            val displayName =
+              if (element.isType) symbolToScalaIdentifier(element.symbol.drop(commonPrefix.length)).replace("`", "")
+              else element.displayName
+            element.rename(displayName)
+          }
       }
 
     def updateConstructors(implicit options: Options): Seq[ClassDiagramElement] =
@@ -88,36 +128,6 @@ private[scala2plantuml] object DiagramModifications {
           }
       }
 
-    def addMissingElements(implicit options: Options): Seq[ClassDiagramElement] =
-      options.sorting match {
-        case Unsorted =>
-          // Fields may appear before their parents so we may need to insert duplicate parents and we have to do that
-          // before other operations like renaming.
-          val types = elements.filter(_.symbol.isType).map(element => element.symbol -> element).toMap
-          val (_, withMissing) = elements.foldLeft((List.empty[String], Vector.empty[ClassDiagramElement])) {
-            case ((outer, acc), element) =>
-              if (isMember(element)) {
-                val parent       = methodParent(element.symbol)
-                def createParent = Class(scalaTypeName(symbolToScalaIdentifier(parent)), parent, isObject = false)
-                outer match {
-                  case head :: tail =>
-                    if (head == parent)
-                      (outer, acc :+ element)
-                    else {
-                      val clazz = types.getOrElse(parent, createParent)
-                      (parent +: tail, acc :+ clazz :+ element)
-                    }
-                  case Nil =>
-                    val clazz = types.getOrElse(parent, createParent)
-                    (List(parent), acc :+ clazz :+ element)
-                }
-              } else
-                (outer, acc :+ element)
-          }
-          withMissing
-        case _ => elements
-      }
-
     def sort(implicit options: Options): Seq[ClassDiagramElement] =
       options.sorting match {
         case Options.NaturalSortOrder => elements.sortBy(_.symbol)(new NaturalOrdering)
@@ -130,24 +140,6 @@ private[scala2plantuml] object DiagramModifications {
       }.lastOption.getOrElse(-1)
       a.take(i + 1)
     }
-
-    private def renameElement(element: ClassDiagramElement, f: ClassDiagramElement => String): ClassDiagramElement =
-      element match {
-        case element: AbstractClass => element.copy(displayName = f(element))
-        case element: Annotation    => element.copy(displayName = f(element))
-        case element: Enum          => element.copy(displayName = f(element))
-        case element: Field         => element
-        case element: Class         => element.copy(displayName = f(element))
-        case element: Interface     => element.copy(displayName = f(element))
-        case element: Method        => element
-      }
-
-    private def isMember(element: ClassDiagramElement): Boolean =
-      element match {
-        case _: Field  => true
-        case _: Method => true
-        case _         => false
-      }
   }
 
   def apply(elements: Seq[ClassDiagramElement], options: Options): Seq[ClassDiagramElement] = {

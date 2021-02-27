@@ -3,7 +3,7 @@ package nz.co.bottech.scala2plantuml
 import nz.co.bottech.scala2plantuml.ClassDiagramPrinter.Options
 import utest.assert
 
-trait ClassDiagramTest {
+trait ClassDiagramTests {
 
   protected val testOptions: Options = Options.Minimal
 

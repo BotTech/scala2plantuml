@@ -19,6 +19,7 @@ val slf4jVersion   = "1.7.30"
 val utestVersion   = "0.7.7"
 
 val commonLibraryProjectSettings = List(
+  scalaVersion := scala212,
   crossScalaVersions := supportedScalaVersions
 )
 
@@ -38,7 +39,7 @@ lazy val core = project
       "com.lihaoyi"   %% "utest"           % utestVersion   % Test
     ),
     testFrameworks += new TestFramework("utest.runner.Framework"),
-    Test / fullClasspath += (Test / semanticdbTargetRoot).value
+    Test / managedSourceDirectories += (Test / semanticdbTargetRoot).value
   )
 
 lazy val cli = project

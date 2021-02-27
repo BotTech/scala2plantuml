@@ -55,7 +55,7 @@ object ClassDiagramPrinter {
     )
 
     def constructorTypeName(element: ClassDiagramElement): String =
-      scalaTypeName(symbolToScalaIdentifier(methodParent(element.symbol)))
+      scalaTypeName(symbolToScalaIdentifier(element.parentSymbol))
 
     sealed trait CompanionObjectsOption
     case object CombineAsStatic extends CompanionObjectsOption
@@ -96,55 +96,41 @@ object ClassDiagramPrinter {
 
   def printSnippet(elements: Seq[ClassDiagramElement], options: Options): String = {
     val builder = new StringBuilder
-    def endPrevious(previous: String, next: Option[String], outer: List[String]): List[String] = {
-      if (next.exists(_.startsWith(previous))) {
-        // This is nested under the previous so create an outer scope.
-        builder.append(" {\n")
-        previous +: outer
-      } else {
-        builder.append("\n")
-        outer
-      }
-    }
-
+    def nest(outer: ClassDiagramElement, current: ClassDiagramElement): Boolean =
+      current.isMember && outer.isParentOf(current)
     @tailrec
-    def closeOuter(next: Option[String], outer: List[String]): List[String] =
-      outer match {
-        case head :: tail if !next.exists(_.startsWith(head)) =>
-          // No next or it is not nested under the outer element so close the outer one.
-          builder.append("  " * tail.size)
-          builder.append("}\n")
-          closeOuter(next, tail)
-        case _ => outer
-      }
-    @tailrec
-    def loop(remaining: Seq[ClassDiagramElement], previous: Option[String], outer: List[String]): String = {
-      val maybeCurrent = remaining.headOption.map(_.symbol)
-      val nextOuter = closeOuter(
-        maybeCurrent,
-        previous
-          .map(endPrevious(_, maybeCurrent, outer))
-          .getOrElse(outer)
-      )
+    def loop(
+        remaining: Seq[ClassDiagramElement],
+        previous: Option[ClassDiagramElement],
+        outer: Option[ClassDiagramElement]
+      ): String =
       remaining match {
         case head +: tail =>
-          builder.append("  " * nextOuter.size)
+          val nested = outer match {
+            case Some(out) => nest(out, head)
+            case None =>
+              previous match {
+                case Some(prev) => nest(prev, head)
+                case None       => false
+              }
+          }
+          if (outer.isEmpty) {
+            if (nested) builder.append(" {")
+          } else if (!nested) builder.append("\n}")
+          builder.append('\n')
+          if (nested) builder.append("  ")
           builder.append(printElementStart(head))
-          loop(tail, Some(head.symbol), nextOuter)
+          val nextOuter = if (nested) outer.orElse(previous) else None
+          loop(tail, Some(head), nextOuter)
         case Seq() =>
+          if (outer.nonEmpty) builder.append("\n}")
+          builder.append('\n')
           builder.toString
       }
-    }
 
     val updatedElements = DiagramModifications(elements, options)
-    loop(updatedElements, None, Nil)
+    loop(updatedElements, None, None)
   }
-
-  def methodParent(symbol: String): String =
-    symbol.desc match {
-      case _: Descriptor.Method => symbol.ownerChain.takeRight(2).headOption.getOrElse(symbol)
-      case _                    => symbol
-    }
 
   def symbolToScalaIdentifier(symbol: String): String =
     if (symbol.isGlobal) symbol.replace('/', '.').dropRight(1)
