@@ -11,13 +11,13 @@ object EnumerationTests extends TestSuite with ClassDiagramTests {
       success(
         "WeekDay.",
         """enum WeekDay {
-          |  + {field} Fri
-          |  + {field} Mon
-          |  + {field} Sat
-          |  + {field} Sun
-          |  + {field} Thu
-          |  + {field} Tue
-          |  + {field} Wed
+          |  + {static} {field} Fri
+          |  + {static} {field} Mon
+          |  + {static} {field} Sat
+          |  + {static} {field} Sun
+          |  + {static} {field} Thu
+          |  + {static} {field} Tue
+          |  + {static} {field} Wed
           |}""".stripMargin
       )
     }
