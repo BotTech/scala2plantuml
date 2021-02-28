@@ -25,8 +25,12 @@ package object scala2plantuml {
 
   private[scala2plantuml] def symbolToScalaIdentifier(symbol: String): String =
     if (symbol.isTypeParameter || symbol.isParameter) symbol.desc.value
-    else if (symbol.isGlobal) symbol.replace('/', '.').dropRight(1)
-    else symbol.replace('/', '.')
+    // Don't use the descriptor value for other globals as we need the fully qualified name.
+    else if (symbol.isGlobal) toScalaSeparators(symbol.init)
+    else toScalaSeparators(symbol)
+
+  private def toScalaSeparators(symbol: String): String =
+    symbol.replace('.', '$').replace('/', '.')
 
   private[scala2plantuml] def scalaTypeName(identifier: String): String =
     identifier.split('.').last.split('#').head

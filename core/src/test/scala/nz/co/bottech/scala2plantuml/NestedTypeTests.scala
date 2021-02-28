@@ -7,10 +7,21 @@ object NestedTypeTests extends TestSuite with ClassDiagramTests {
 
   override protected val exampleDir: String = "nested"
 
+  /*
+  @startuml
+  class OuterObject2
+  class OuterObject$InnerClass
+  @enduml
+   */
+
   val tests: Tests = Tests {
     test("nested class") {
       success("OuterClass#", """class OuterClass
                               |class "OuterClass#InnerClass"""".stripMargin)
+    }
+    test("nested object") {
+      success("OuterObject.", """class OuterObject
+                               |class "OuterObject$InnerClass"""".stripMargin)
     }
     test("nested class with fields sorted") {
       success(
