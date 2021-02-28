@@ -13,6 +13,7 @@ private[scala2plantuml] object SymbolProcessor {
 
   private val logger = LoggerFactory.getLogger(getClass.getName.dropRight(1))
 
+  // TODO: Perhaps we should return a different type than the types used for rendering.
   def processSymbol(
       symbol: String,
       ignore: String => Boolean,

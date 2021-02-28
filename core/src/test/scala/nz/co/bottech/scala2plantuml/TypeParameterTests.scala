@@ -17,7 +17,8 @@ object TypeParameterTests extends TestSuite with ClassDiagramTests {
       success(
         "TypeParameterWithBounds#",
         """interface Trait
-          |interface TypeParameterWithBounds<A extends Trait>""".stripMargin
+          |interface TypeParameterWithBounds<A extends Trait>
+          |TypeParameterWithBounds o-- Trait""".stripMargin
       )
     }
     test("type parameter with multiple bounds") {
@@ -25,7 +26,9 @@ object TypeParameterTests extends TestSuite with ClassDiagramTests {
         "TypeParameterWithMultipleBounds#",
         """interface Trait
           |interface Trait2
-          |interface TypeParameterWithMultipleBounds<A extends Trait & Trait2>""".stripMargin
+          |interface TypeParameterWithMultipleBounds<A extends Trait & Trait2>
+          |TypeParameterWithMultipleBounds o-- Trait
+          |TypeParameterWithMultipleBounds o-- Trait2""".stripMargin
       )
     }
     test("type parameter with extension") {

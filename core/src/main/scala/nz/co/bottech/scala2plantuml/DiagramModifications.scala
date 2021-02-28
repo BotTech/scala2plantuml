@@ -5,7 +5,6 @@ import nz.co.bottech.scala2plantuml.ClassDiagramPrinter.Options.Unsorted
 import nz.co.bottech.scala2plantuml.ClassDiagramPrinter._
 
 import scala.annotation.tailrec
-import scala.meta.internal.semanticdb.Scala._
 
 private[scala2plantuml] object DiagramModifications {
 
@@ -18,14 +17,19 @@ private[scala2plantuml] object DiagramModifications {
     def removeHidden(implicit options: Options): ElementsWithNames =
       options.hide match {
         case Options.HideMatching(patterns) =>
-          val tests                         = patterns.map(patternToRegex(_).asMatchPredicate)
-          def hide(symbol: String): Boolean = tests.exists(_.test(symbol))
-          val newElements = elements.filterNot(element => hide(element.symbol)).map {
+          val tests                               = patterns.map(patternToRegex(_).asMatchPredicate)
+          def hideSymbol(symbol: String): Boolean = tests.exists(_.test(symbol))
+          def hideElement(element: ClassDiagramElement): Boolean =
+            element match {
+              case definition: Definition => hideSymbol(definition.symbol)
+              case _                      => false
+            }
+          val newElements = elements.filterNot(element => hideElement(element)).map {
             case typ: Type =>
-              val newParents = typ.parentSymbols.filterNot(hide)
+              val newParents = typ.parentSymbols.filterNot(hideSymbol)
               val newTypeParameters = typ.typeParameters
-                .filterNot(parameter => hide(parameter.symbol))
-                .map(parameter => parameter.copy(parentSymbols = parameter.parentSymbols.filterNot(hide)))
+                .filterNot(parameter => hideSymbol(parameter.symbol))
+                .map(parameter => parameter.copy(parentSymbols = parameter.parentSymbols.filterNot(hideSymbol)))
               typ match {
                 case annotation: Annotation =>
                   annotation.copy(parentSymbols = newParents, typeParameters = newTypeParameters)
@@ -58,37 +62,36 @@ private[scala2plantuml] object DiagramModifications {
         case Unsorted =>
           // Fields may appear before their parents so we may need to insert duplicate parents and we have to do that
           // before other operations like renaming.
-          val types = elements.filter(_.symbol.isType).map(element => element.symbol -> element).toMap
+          val types = elements.collect({ case typ: Type => typ }).map(element => element.symbol -> element).toMap
           @tailrec
           def loop(
               remaining: Seq[ClassDiagramElement],
-              previousType: Option[ClassDiagramElement],
+              previousType: Option[Type],
               acc: Vector[ClassDiagramElement]
             ): Vector[ClassDiagramElement] =
             remaining match {
+              case (typ: Type) +: tail =>
+                val nextAcc = if (previousType.exists(_.symbol == typ.symbol)) acc else acc :+ typ
+                loop(tail, Some(typ), nextAcc)
+              case (member: Member) +: tail =>
+                val owner = member.ownerSymbol
+                if (previousType.exists(_.symbol == owner)) loop(tail, previousType, acc :+ member)
+                else {
+                  // TODO: Do we need to cache this?
+                  def createClass =
+                    Class(
+                      scalaTypeName(symbolToScalaIdentifier(owner)),
+                      owner,
+                      isObject = false,
+                      isAbstract = false,
+                      Seq.empty,
+                      Seq.empty
+                    )
+                  val ownerElement = types.getOrElse(owner, createClass)
+                  loop(tail, Some(ownerElement), acc :+ ownerElement :+ member)
+                }
               case head +: tail =>
-                if (head.isType) {
-                  val nextAcc = if (previousType.exists(_.symbol == head.symbol)) acc else acc :+ head
-                  loop(tail, Some(head), nextAcc)
-                } else if (head.isMember) {
-                  val owner = head.ownerSymbol
-                  if (previousType.exists(_.symbol == owner)) loop(tail, previousType, acc :+ head)
-                  else {
-                    // TODO: Do we need to cache this?
-                    def createClass =
-                      Class(
-                        scalaTypeName(symbolToScalaIdentifier(owner)),
-                        owner,
-                        isObject = false,
-                        isAbstract = false,
-                        Seq.empty,
-                        Seq.empty
-                      )
-                    val ownerElement = types.getOrElse(owner, createClass)
-                    loop(tail, Some(ownerElement), acc :+ ownerElement :+ head)
-                  }
-                } else
-                  loop(tail, previousType, acc :+ head)
+                loop(tail, previousType, acc :+ head)
               case _ => acc
             }
           val newElements = loop(elements, None, Vector.empty)
@@ -100,11 +103,13 @@ private[scala2plantuml] object DiagramModifications {
       assert(names.isEmpty)
       def typeParameterSymbols(parameters: Seq[TypeParameter]): Seq[String] =
         parameters.flatMap(parameter => parameter.symbol +: parameter.parentSymbols)
+      // TODO: This might be overkill. All the symbols we care about should be types.
       def elementSymbols(element: ClassDiagramElement): Seq[String] =
         element match {
-          case typ: Type      => typ.symbol +: typ.parentSymbols ++: typeParameterSymbols(typ.typeParameters)
-          case field: Field   => Seq(field.symbol)
-          case method: Method => method.symbol +: typeParameterSymbols(method.typeParameters)
+          case typ: Type                => typ.symbol +: typ.parentSymbols ++: typeParameterSymbols(typ.typeParameters)
+          case field: Field             => Seq(field.symbol)
+          case method: Method           => method.symbol +: typeParameterSymbols(method.typeParameters)
+          case aggregation: Aggregation => Seq(aggregation.aggregator, aggregation.aggregated)
         }
       def elementNames(element: ClassDiagramElement, f: String => String): Seq[(String, String)] = {
         def symbolName(symbol: String) = symbol -> symbolToScalaIdentifier(f(symbol)).replace("`", "")
@@ -115,7 +120,8 @@ private[scala2plantuml] object DiagramModifications {
               symbolName(parameter.symbol) +: parameter.parentSymbols.map(symbolName)
             }
             elementName +: typeParameterNames
-          case _: Member => Seq(element.symbol -> element.displayName)
+          case member: Member => Seq(member.symbol -> member.displayName)
+          case _: Aggregation => Seq.empty
         }
       }
       val newNames = options.naming match {
@@ -138,21 +144,21 @@ private[scala2plantuml] object DiagramModifications {
     def combineCompanionObjects(implicit options: Options): ElementsWithNames =
       options.companionObjects match {
         case Options.CombineAsStatic =>
-          val nonObjectNames =
-            elements
-              .filterNot(_.isObject)
-              .map(element => symbolToScalaIdentifier(element.symbol))
-              .toSet
-          val newElements = elements.filterNot(element =>
-            element.isObject && nonObjectNames.contains(symbolToScalaIdentifier(element.symbol))
-          )
+          val nonObjectTypeNames = elements.collect {
+            case typ: Type if !typ.isObject => symbolToScalaIdentifier(typ.symbol)
+          }.toSet
+          val newElements = elements.collect {
+            case typ: Type if !typ.isObject                                                     => typ
+            case typ: Type if !nonObjectTypeNames.contains(symbolToScalaIdentifier(typ.symbol)) => typ
+            case member: Member                                                                 => member
+            case aggregation: Aggregation                                                       => aggregation
+          }
           elementsWithNames.copy(elements = newElements)
         case Options.SeparateClasses =>
           val newNames = elements.foldLeft(names) {
-            case (names, element) if element.isObject =>
-              val symbol = element.symbol
-              val name   = names.getOrElse(symbol, element.displayName)
-              names.updated(symbol, s"$name$$")
+            case (names, typ: Type) if typ.isObject =>
+              val name = names.getOrElse(typ.symbol, typ.displayName)
+              names.updated(typ.symbol, s"$name$$")
             case (names, _) => names
           }
           elementsWithNames.copy(names = newNames)
@@ -177,9 +183,33 @@ private[scala2plantuml] object DiagramModifications {
           elementsWithNames.copy(names = newNames)
       }
 
+    def addRelations: ElementsWithNames = {
+      @tailrec
+      def loop(
+          remaining: Seq[ClassDiagramElement],
+          seen: Set[String],
+          acc: Vector[ClassDiagramElement]
+        ): Vector[ClassDiagramElement] =
+        remaining match {
+          case (typ: Type) +: tail if !seen.contains(typ.symbol) =>
+            val relations = typ.typeParameters
+              .flatMap(_.parentSymbols)
+              .map(aggregated => Aggregation(typ.symbol, aggregated))
+            loop(tail, seen, (acc ++ relations) :+ typ)
+          case head +: tail =>
+            // TODO: What if the relations already exist? Types seem to be wrong.
+            assert(!head.isInstanceOf[Aggregation])
+            // TODO: Members can have type parameters.
+            loop(tail, seen, acc :+ head)
+          case Seq() => acc
+        }
+      val newElements = loop(elements, Set.empty, Vector.empty)
+      elementsWithNames.copy(elements = newElements)
+    }
+
     def sort(implicit options: Options): ElementsWithNames = {
       val newElements = options.sorting match {
-        case Options.NaturalSortOrder => elements.sortBy(_.symbol)(NaturalTypeOrdering)
+        case Options.NaturalSortOrder => elements.sorted(new ClassDiagramElementOrdering(NaturalTypeOrdering))
         case Options.Unsorted         => elements
       }
       elementsWithNames.copy(elements = newElements)
@@ -198,6 +228,6 @@ private[scala2plantuml] object DiagramModifications {
     ElementsWithNames(
       elements,
       Map.empty
-    ).removeHidden.removeSynthetics.addMissingElements.calculateNames.combineCompanionObjects.updateConstructors.sort
+    ).removeHidden.removeSynthetics.addMissingElements.calculateNames.combineCompanionObjects.updateConstructors.addRelations.sort
   }
 }

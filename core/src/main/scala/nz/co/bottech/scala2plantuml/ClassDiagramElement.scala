@@ -1,40 +1,26 @@
 package nz.co.bottech.scala2plantuml
 
-import nz.co.bottech.scala2plantuml.ClassDiagramElement.{Member, Type}
-
 import scala.meta.internal.semanticdb.Scala._
 
-sealed trait ClassDiagramElement {
-
-  def displayName: String
-  def symbol: String
-
-  def isObject: Boolean
-  def isAbstract: Boolean
-
-  def isType: Boolean =
-    this match {
-      case _: Type   => true
-      case _: Member => false
-    }
-
-  def isMember: Boolean =
-    this match {
-      case _: Type   => false
-      case _: Member => true
-    }
-
-  def owns(child: ClassDiagramElement): Boolean = child.ownerSymbol == symbol
-  def ownerSymbol: String                       = symbol.ownerChain.takeRight(2).headOption.getOrElse(symbol)
-}
+sealed trait ClassDiagramElement
 
 object ClassDiagramElement {
 
+  trait Definition {
+    def symbol: String
+    def displayName: String
+
+    def ownerSymbol: String = symbol.ownerChain.takeRight(2).headOption.getOrElse(symbol)
+  }
+
   final case class TypeParameter(symbol: String, parentSymbols: Seq[String])
 
-  sealed trait Type extends ClassDiagramElement {
+  sealed trait Type extends ClassDiagramElement with Definition {
+    def isObject: Boolean
     def parentSymbols: Seq[String]
     def typeParameters: Seq[TypeParameter]
+
+    def owns(child: Definition): Boolean = child.ownerSymbol == symbol
   }
 
   final case class Annotation(
@@ -43,9 +29,7 @@ object ClassDiagramElement {
       isObject: Boolean,
       parentSymbols: Seq[String],
       typeParameters: Seq[TypeParameter])
-      extends Type {
-    override val isAbstract: Boolean = false
-  }
+      extends Type
 
   final case class Class(
       displayName: String,
@@ -62,9 +46,7 @@ object ClassDiagramElement {
       isObject: Boolean,
       parentSymbols: Seq[String],
       typeParameters: Seq[TypeParameter])
-      extends Type {
-    override val isAbstract: Boolean = false
-  }
+      extends Type
 
   final case class Interface(
       displayName: String,
@@ -72,8 +54,7 @@ object ClassDiagramElement {
       parentSymbols: Seq[String],
       typeParameters: Seq[TypeParameter])
       extends Type {
-    override val isObject: Boolean   = false
-    override val isAbstract: Boolean = true
+    override val isObject: Boolean = false
   }
 
   sealed trait Visibility
@@ -85,10 +66,9 @@ object ClassDiagramElement {
     case object Public         extends Visibility
   }
 
-  sealed trait Member extends ClassDiagramElement {
-    override val isObject: Boolean = false
-
+  sealed trait Member extends ClassDiagramElement with Definition {
     def visibility: Visibility
+    def isAbstract: Boolean
   }
 
   final case class Field(displayName: String, symbol: String, visibility: Visibility, isAbstract: Boolean)
@@ -103,4 +83,6 @@ object ClassDiagramElement {
       isAbstract: Boolean,
       typeParameters: Seq[TypeParameter])
       extends Member
+
+  final case class Aggregation(aggregator: String, aggregated: String) extends ClassDiagramElement
 }

@@ -34,4 +34,14 @@ package object scala2plantuml {
 
   private[scala2plantuml] def scalaTypeName(identifier: String): String =
     identifier.split('.').last.split('#').head
+
+  /*
+  @startuml
+  class A
+  class B<? extends A>
+  B o-- A
+  class B
+  B o-- B
+  @enduml
+   */
 }
