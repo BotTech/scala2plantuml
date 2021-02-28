@@ -142,25 +142,39 @@ object ClassDiagramPrinter {
     }
 
   private def printType(typ: Type, names: Map[String, String]): String = {
-    val name          = quoteName(printName(typ, names))
-    val extendsClause = printExtends(typ, names)
+    val name           = quoteName(printName(typ, names))
+    val typeParameters = printTypeParameters(typ.typeParameters, names)
+    val extendsClause  = printExtends(typ.parentSymbols, names, separator = ", ")
     val prefix = typ match {
       case _: Annotation => "annotation"
       case clazz: Class  => s"${printAbstract(clazz)}class"
       case _: Enum       => "enum"
       case _: Interface  => "interface"
     }
-    s"$prefix $name$extendsClause"
+    s"$prefix $name$typeParameters$extendsClause"
   }
 
   private def printAbstract(clazz: Class): String =
     if (clazz.isAbstract) "abstract " else ""
 
-  private def printExtends(typ: Type, names: Map[String, String]): String =
-    if (typ.parentSymbols.nonEmpty) {
-      val parents = typ.parentSymbols.map { symbol =>
-        quoteName(names.getOrElse(symbol, symbolToScalaIdentifier(symbol)))
+  private def printTypeParameters(
+      parameters: Seq[ClassDiagramElement.TypeParameter],
+      names: Map[String, String]
+    ): String =
+    if (parameters.nonEmpty) {
+      val params = parameters.map { parameter =>
+        val name          = quoteName(names.getOrElse(parameter.symbol, parameter.symbol))
+        val extendsClause = printExtends(parameter.parentSymbols, names, separator = " & ")
+        s"$name$extendsClause"
       }.mkString(", ")
+      s"<$params>"
+    } else ""
+
+  private def printExtends(symbols: Seq[String], names: Map[String, String], separator: String): String =
+    if (symbols.nonEmpty) {
+      val parents = symbols.map { symbol =>
+        quoteName(names.getOrElse(symbol, symbolToScalaIdentifier(symbol)))
+      }.mkString(separator)
       s" extends $parents"
     } else ""
 

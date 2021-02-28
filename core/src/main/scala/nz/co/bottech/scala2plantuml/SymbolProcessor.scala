@@ -38,7 +38,7 @@ private[scala2plantuml] object SymbolProcessor {
           symbolTable.info(current) match {
             case Some(symbolInformation: SymbolInformation) =>
               logger.trace(symbolInformationString(symbolInformation))
-              val elements = symbolElements(symbolInformation, ignore, typeIndex, definitionIndex)
+              val elements = symbolElements(symbolInformation, ignore, symbolTable, typeIndex, definitionIndex)
               // Traverse breadth-first so that we process a full symbol before moving onto the next.
               val nextSymbols = tail ++ symbolReferences(symbolInformation)
               val nextSeen    = seen + current
@@ -65,13 +65,14 @@ private[scala2plantuml] object SymbolProcessor {
   private def symbolElements(
       symbolInformation: SymbolInformation,
       ignore: String => Boolean,
+      symbolTable: SymbolTable,
       typeIndex: TypeIndex,
       definitionIndex: DefinitionIndex
     ): Vector[ClassDiagramElement] =
     symbolInformation.signature match {
       case Signature.Empty       => Vector.empty
       case _: ValueSignature     => Vector.empty
-      case clazz: ClassSignature => Vector(classElement(symbolInformation, clazz, ignore, typeIndex))
+      case clazz: ClassSignature => Vector(classElement(symbolInformation, clazz, ignore, symbolTable, typeIndex))
       case _: MethodSignature    => Vector(methodElement(symbolInformation, definitionIndex))
       case _: TypeSignature      => Vector.empty
     }
@@ -80,18 +81,27 @@ private[scala2plantuml] object SymbolProcessor {
       symbolInformation: SymbolInformation,
       clazz: ClassSignature,
       ignore: String => Boolean,
+      symbolTable: SymbolTable,
       typeIndex: TypeIndex
     ): ClassDiagramElement = {
     import symbolInformation.{displayName, symbol}
-    val parentSymbols = clazz.parents.flatMap(typeSymbols)
+    val parentSymbols  = clazz.parents.flatMap(typeSymbols)
+    val typeParameters = clazz.typeParameters.map(scopeTypeParameters(_, symbolTable)).getOrElse(Seq.empty)
     if (isTrait(symbolInformation))
-      Interface(displayName, symbol, parentSymbols)
+      Interface(displayName, symbol, parentSymbols, typeParameters)
     else if (isAnnotation(symbolInformation, ignore, typeIndex))
-      UMLAnnotation(displayName, symbol, isObject(symbolInformation), parentSymbols)
+      UMLAnnotation(displayName, symbol, isObject(symbolInformation), parentSymbols, typeParameters)
     else if (isEnum(symbolInformation, ignore, typeIndex))
-      Enum(displayName, symbol, isObject(symbolInformation), parentSymbols)
+      Enum(displayName, symbol, isObject(symbolInformation), parentSymbols, typeParameters)
     else
-      Class(displayName, symbol, isObject(symbolInformation), isAbstract(symbolInformation), parentSymbols)
+      Class(
+        displayName,
+        symbol,
+        isObject(symbolInformation),
+        isAbstract(symbolInformation),
+        parentSymbols,
+        typeParameters
+      )
   }
 
   private def methodElement(
@@ -109,7 +119,8 @@ private[scala2plantuml] object SymbolProcessor {
         visibility,
         isConstructor(symbolInformation),
         isSynthetic(symbolInformation.symbol, definitionIndex),
-        isAbstract(symbolInformation)
+        isAbstract(symbolInformation),
+        Seq.empty // TODO
       )
   }
 
@@ -192,6 +203,17 @@ private[scala2plantuml] object SymbolProcessor {
       case SuperType(_, symbol)    => Seq(symbol)
       case StructuralType(tpe, _)  => typeSymbols(tpe)
     }
+
+  private def scopeTypeParameters(scope: Scope, table: SymbolTable): Seq[TypeParameter] =
+    // TODO: What about missing symbols?
+    // TODO: What to do about hardlinks?
+    scope.symlinks
+      .flatMap(table.info)
+      .map(info => (info, info.signature))
+      .collect {
+        // TODO: What to do about higher-kinded types?
+        case (info, typ: TypeSignature) => TypeParameter(info.symbol, typeSymbols(typ.upperBound))
+      }
 
   private def symbolVisibility(symbolInformation: SymbolInformation): Visibility =
     symbolInformation.access match {

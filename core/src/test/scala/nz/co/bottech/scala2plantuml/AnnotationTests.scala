@@ -11,8 +11,11 @@ object AnnotationTests extends TestSuite with ClassDiagramTests {
       success("SimpleAnnotation#", """annotation SimpleAnnotation""")
     }
     test("extended annotation") {
-      success("ExtendedAnnotation#", """annotation ExtendedAnnotation extends SimpleAnnotation
-                                      |annotation SimpleAnnotation""".stripMargin)
+      success(
+        "ExtendedAnnotation#",
+        """annotation ExtendedAnnotation extends SimpleAnnotation
+          |annotation SimpleAnnotation""".stripMargin
+      )
     }
     test("static annotation") {
       success("MyStaticAnnotation#", """annotation MyStaticAnnotation""")

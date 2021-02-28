@@ -39,7 +39,8 @@ lazy val core = project
       "com.lihaoyi"   %% "utest"           % utestVersion   % Test
     ),
     testFrameworks += new TestFramework("utest.runner.Framework"),
-    Test / managedSourceDirectories += (Test / semanticdbTargetRoot).value
+    Test / managedSourceDirectories += (Test / semanticdbTargetRoot).value,
+    Test / fullClasspath += (Test / semanticdbTargetRoot).value
   )
 
 lazy val cli = project

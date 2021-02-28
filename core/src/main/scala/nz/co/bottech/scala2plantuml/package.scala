@@ -24,7 +24,8 @@ package object scala2plantuml {
     symbol.startsWith("scala/")
 
   private[scala2plantuml] def symbolToScalaIdentifier(symbol: String): String =
-    if (symbol.isGlobal) symbol.replace('/', '.').dropRight(1)
+    if (symbol.isTypeParameter || symbol.isParameter) symbol.desc.value
+    else if (symbol.isGlobal) symbol.replace('/', '.').dropRight(1)
     else symbol.replace('/', '.')
 
   private[scala2plantuml] def scalaTypeName(identifier: String): String =

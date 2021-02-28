@@ -12,13 +12,19 @@ object ExtensionTests extends TestSuite with ClassDiagramTests {
                                         |class SingleClassExtension extends BaseClass""".stripMargin)
     }
     test("single trait extension") {
-      success("SingleTraitExtension#", """interface BaseTrait
-                                        |interface SingleTraitExtension extends BaseTrait""".stripMargin)
+      success(
+        "SingleTraitExtension#",
+        """interface BaseTrait
+          |interface SingleTraitExtension extends BaseTrait""".stripMargin
+      )
     }
     test("multiple class extension") {
-      success("MultipleClassExtension#", """class BaseClass
-                                         |interface BaseTrait
-                                         |class MultipleClassExtension extends BaseClass, BaseTrait""".stripMargin)
+      success(
+        "MultipleClassExtension#",
+        """class BaseClass
+          |interface BaseTrait
+          |class MultipleClassExtension extends BaseClass, BaseTrait""".stripMargin
+      )
     }
   }
 }

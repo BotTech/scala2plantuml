@@ -23,11 +23,18 @@ private[scala2plantuml] object DiagramModifications {
           val newElements = elements.filterNot(element => hide(element.symbol)).map {
             case typ: Type =>
               val newParents = typ.parentSymbols.filterNot(hide)
+              val newTypeParameters = typ.typeParameters
+                .filterNot(parameter => hide(parameter.symbol))
+                .map(parameter => parameter.copy(parentSymbols = parameter.parentSymbols.filterNot(hide)))
               typ match {
-                case annotation: Annotation => annotation.copy(parentSymbols = newParents)
-                case clazz: Class           => clazz.copy(parentSymbols = newParents)
-                case enum: Enum             => enum.copy(parentSymbols = newParents)
-                case interface: Interface   => interface.copy(parentSymbols = newParents)
+                case annotation: Annotation =>
+                  annotation.copy(parentSymbols = newParents, typeParameters = newTypeParameters)
+                case clazz: Class =>
+                  clazz.copy(parentSymbols = newParents, typeParameters = newTypeParameters)
+                case enum: Enum =>
+                  enum.copy(parentSymbols = newParents, typeParameters = newTypeParameters)
+                case interface: Interface =>
+                  interface.copy(parentSymbols = newParents, typeParameters = newTypeParameters)
               }
             case element => element
           }
@@ -67,13 +74,14 @@ private[scala2plantuml] object DiagramModifications {
                   val owner = head.ownerSymbol
                   if (previousType.exists(_.symbol == owner)) loop(tail, previousType, acc :+ head)
                   else {
-                    // TODO: Do we need to caching this?
+                    // TODO: Do we need to cache this?
                     def createClass =
                       Class(
                         scalaTypeName(symbolToScalaIdentifier(owner)),
                         owner,
                         isObject = false,
                         isAbstract = false,
+                        Seq.empty,
                         Seq.empty
                       )
                     val ownerElement = types.getOrElse(owner, createClass)
@@ -90,29 +98,39 @@ private[scala2plantuml] object DiagramModifications {
 
     def calculateNames(implicit options: Options): ElementsWithNames = {
       assert(names.isEmpty)
+      def typeParameterSymbols(parameters: Seq[TypeParameter]): Seq[String] =
+        parameters.flatMap(parameter => parameter.symbol +: parameter.parentSymbols)
+      def elementSymbols(element: ClassDiagramElement): Seq[String] =
+        element match {
+          case typ: Type      => typ.symbol +: typ.parentSymbols ++: typeParameterSymbols(typ.typeParameters)
+          case field: Field   => Seq(field.symbol)
+          case method: Method => method.symbol +: typeParameterSymbols(method.typeParameters)
+        }
+      def elementNames(element: ClassDiagramElement, f: String => String): Seq[(String, String)] = {
+        def symbolName(symbol: String) = symbol -> symbolToScalaIdentifier(f(symbol)).replace("`", "")
+        element match {
+          case typ: Type =>
+            val elementName = symbolName(typ.symbol)
+            val typeParameterNames = typ.typeParameters.flatMap { parameter =>
+              symbolName(parameter.symbol) +: parameter.parentSymbols.map(symbolName)
+            }
+            elementName +: typeParameterNames
+          case _: Member => Seq(element.symbol -> element.displayName)
+        }
+      }
       val newNames = options.naming match {
         case Options.FullyQualified =>
-          elements.map { element =>
-            val displayName =
-              if (element.isType) symbolToScalaIdentifier(element.symbol).replace("`", "")
-              else element.displayName
-            element.symbol -> displayName
-          }.toMap
+          elements.flatMap(element => elementNames(element, identity)).toMap
         case Options.RemoveCommonPrefix =>
-          // FIXME: This will probably break links to types in other packages.
-          val firstPrefix = elements.headOption.map { element =>
-            val i = element.symbol.lastIndexOf('/')
-            element.symbol.take(i + 1)
+          val symbols = elements.flatMap(elementSymbols).toSet
+          val firstPrefix = symbols.headOption.map { symbol =>
+            val i = symbol.lastIndexOf('/')
+            symbol.take(i + 1)
           }.getOrElse("")
-          val commonPrefix = elements.foldLeft(firstPrefix) {
-            case (prefix, element) => longestPrefix(prefix, element.symbol)
+          val commonPrefix = symbols.foldLeft(firstPrefix) {
+            case (prefix, symbol) => longestPrefix(prefix, symbol)
           }
-          elements.map { element =>
-            val displayName =
-              if (element.isType) symbolToScalaIdentifier(element.symbol.drop(commonPrefix.length)).replace("`", "")
-              else element.displayName
-            element.symbol -> displayName
-          }.toMap
+          elements.flatMap(element => elementNames(element, _.drop(commonPrefix.length))).toMap
       }
       elementsWithNames.copy(names = newNames)
     }
@@ -161,7 +179,7 @@ private[scala2plantuml] object DiagramModifications {
 
     def sort(implicit options: Options): ElementsWithNames = {
       val newElements = options.sorting match {
-        case Options.NaturalSortOrder => elements.sortBy(_.symbol)(new NaturalOrdering)
+        case Options.NaturalSortOrder => elements.sortBy(_.symbol)(NaturalTypeOrdering)
         case Options.Unsorted         => elements
       }
       elementsWithNames.copy(elements = newElements)

@@ -30,11 +30,19 @@ sealed trait ClassDiagramElement {
 
 object ClassDiagramElement {
 
+  final case class TypeParameter(symbol: String, parentSymbols: Seq[String])
+
   sealed trait Type extends ClassDiagramElement {
     def parentSymbols: Seq[String]
+    def typeParameters: Seq[TypeParameter]
   }
 
-  final case class Annotation(displayName: String, symbol: String, isObject: Boolean, parentSymbols: Seq[String])
+  final case class Annotation(
+      displayName: String,
+      symbol: String,
+      isObject: Boolean,
+      parentSymbols: Seq[String],
+      typeParameters: Seq[TypeParameter])
       extends Type {
     override val isAbstract: Boolean = false
   }
@@ -44,15 +52,26 @@ object ClassDiagramElement {
       symbol: String,
       isObject: Boolean,
       isAbstract: Boolean,
-      parentSymbols: Seq[String])
+      parentSymbols: Seq[String],
+      typeParameters: Seq[TypeParameter])
       extends Type
 
-  final case class Enum(displayName: String, symbol: String, isObject: Boolean, parentSymbols: Seq[String])
+  final case class Enum(
+      displayName: String,
+      symbol: String,
+      isObject: Boolean,
+      parentSymbols: Seq[String],
+      typeParameters: Seq[TypeParameter])
       extends Type {
     override val isAbstract: Boolean = false
   }
 
-  final case class Interface(displayName: String, symbol: String, parentSymbols: Seq[String]) extends Type {
+  final case class Interface(
+      displayName: String,
+      symbol: String,
+      parentSymbols: Seq[String],
+      typeParameters: Seq[TypeParameter])
+      extends Type {
     override val isObject: Boolean   = false
     override val isAbstract: Boolean = true
   }
@@ -81,6 +100,7 @@ object ClassDiagramElement {
       visibility: Visibility,
       constructor: Boolean,
       synthetic: Boolean,
-      isAbstract: Boolean)
+      isAbstract: Boolean,
+      typeParameters: Seq[TypeParameter])
       extends Member
 }
