@@ -32,16 +32,10 @@ package object scala2plantuml {
   private def toScalaSeparators(symbol: String): String =
     symbol.replace('.', '$').replace('/', '.')
 
+  private[scala2plantuml] def symbolOwner(symbol: String): String =
+    symbol.ownerChain.takeRight(2).headOption.getOrElse(symbol)
+
   private[scala2plantuml] def scalaTypeName(identifier: String): String =
     identifier.split('.').last.split('#').head
 
-  /*
-  @startuml
-  class A
-  class B<? extends A>
-  B o-- A
-  class B
-  B o-- B
-  @enduml
-   */
 }

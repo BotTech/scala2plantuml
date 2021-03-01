@@ -71,11 +71,11 @@ private[scala2plantuml] object SymbolProcessor {
       definitionIndex: DefinitionIndex
     ): Vector[ClassDiagramElement] =
     symbolInformation.signature match {
-      case Signature.Empty       => Vector.empty
-      case _: ValueSignature     => Vector.empty
-      case clazz: ClassSignature => Vector(classElement(symbolInformation, clazz, ignore, symbolTable, typeIndex))
-      case _: MethodSignature    => Vector(methodElement(symbolInformation, definitionIndex))
-      case _: TypeSignature      => Vector.empty
+      case Signature.Empty         => Vector.empty
+      case _: ValueSignature       => Vector.empty
+      case clazz: ClassSignature   => Vector(classElement(symbolInformation, clazz, ignore, symbolTable, typeIndex))
+      case method: MethodSignature => Vector(methodElement(symbolInformation, method, symbolTable, definitionIndex))
+      case _: TypeSignature        => Vector.empty
     }
 
   private def classElement(
@@ -107,13 +107,16 @@ private[scala2plantuml] object SymbolProcessor {
 
   private def methodElement(
       symbolInformation: SymbolInformation,
+      method: MethodSignature,
+      symbolTable: SymbolTable,
       definitionIndex: DefinitionIndex
     ): ClassDiagramElement = {
     import symbolInformation.{displayName, symbol}
     val visibility = symbolVisibility(symbolInformation)
     if (isField(symbolInformation))
       Field(displayName, symbol, visibility, isAbstract(symbolInformation))
-    else
+    else {
+      val typeParameters = method.typeParameters.map(scopeTypeParameters(_, symbolTable)).getOrElse(Seq.empty)
       Method(
         displayName,
         symbol,
@@ -121,8 +124,9 @@ private[scala2plantuml] object SymbolProcessor {
         isConstructor(symbolInformation),
         isSynthetic(symbolInformation.symbol, definitionIndex),
         isAbstract(symbolInformation),
-        Seq.empty // TODO
+        typeParameters
       )
+    }
   }
 
   private def symbolReferences(symbolInformation: SymbolInformation): Seq[String] =

@@ -5,11 +5,13 @@ import nz.co.bottech.scala2plantuml.ClassDiagramPrinter.Options.Unsorted
 import nz.co.bottech.scala2plantuml.ClassDiagramPrinter._
 
 import scala.annotation.tailrec
+import scala.meta.internal.semanticdb.Scala._
 
 private[scala2plantuml] object DiagramModifications {
 
   final case class ElementsWithNames(elements: Seq[ClassDiagramElement], names: Map[String, String])
 
+  //noinspection MutatorLikeMethodIsParameterless
   implicit class FluidOptions(val elementsWithNames: ElementsWithNames) extends AnyVal {
 
     import elementsWithNames._
@@ -21,15 +23,18 @@ private[scala2plantuml] object DiagramModifications {
           def hideSymbol(symbol: String): Boolean = tests.exists(_.test(symbol))
           def hideElement(element: ClassDiagramElement): Boolean =
             element match {
-              case definition: Definition => hideSymbol(definition.symbol)
-              case _                      => false
+              case definition: Definition   => hideSymbol(definition.symbol)
+              case aggregation: Aggregation => hideSymbol(aggregation.aggregator) || hideSymbol(aggregation.aggregated)
+              case _                        => false
             }
+          def hideTypeParameters(typeParameters: Seq[TypeParameter]) =
+            typeParameters
+              .filterNot(parameter => hideSymbol(parameter.symbol))
+              .map(parameter => parameter.copy(parentSymbols = parameter.parentSymbols.filterNot(hideSymbol)))
           val newElements = elements.filterNot(element => hideElement(element)).map {
             case typ: Type =>
-              val newParents = typ.parentSymbols.filterNot(hideSymbol)
-              val newTypeParameters = typ.typeParameters
-                .filterNot(parameter => hideSymbol(parameter.symbol))
-                .map(parameter => parameter.copy(parentSymbols = parameter.parentSymbols.filterNot(hideSymbol)))
+              val newParents        = typ.parentSymbols.filterNot(hideSymbol)
+              val newTypeParameters = hideTypeParameters(typ.typeParameters)
               typ match {
                 case annotation: Annotation =>
                   annotation.copy(parentSymbols = newParents, typeParameters = newTypeParameters)
@@ -40,6 +45,9 @@ private[scala2plantuml] object DiagramModifications {
                 case interface: Interface =>
                   interface.copy(parentSymbols = newParents, typeParameters = newTypeParameters)
               }
+            case method: Method =>
+              val newTypeParameters = hideTypeParameters(method.typeParameters)
+              method.copy(typeParameters = newTypeParameters)
             case element => element
           }
           elementsWithNames.copy(elements = newElements)
@@ -183,24 +191,30 @@ private[scala2plantuml] object DiagramModifications {
           elementsWithNames.copy(names = newNames)
       }
 
-    def addRelations: ElementsWithNames = {
+    def addAggregations: ElementsWithNames = {
       @tailrec
       def loop(
           remaining: Seq[ClassDiagramElement],
-          seen: Set[String],
+          aggregations: Set[Aggregation],
           acc: Vector[ClassDiagramElement]
         ): Vector[ClassDiagramElement] =
         remaining match {
-          case (typ: Type) +: tail if !seen.contains(typ.symbol) =>
-            val relations = typ.typeParameters
+          case (definition: Parameterised) +: tail =>
+            val (nextAggregations, aggregationsToAdd) = definition.typeParameters
               .flatMap(_.parentSymbols)
-              .map(aggregated => Aggregation(typ.symbol, aggregated))
-            loop(tail, seen, (acc ++ relations) :+ typ)
+              .foldLeft((aggregations, Seq.empty[Aggregation])) {
+                case ((aggregations, acc), aggregated) =>
+                  // This is a workaround for https://forum.plantuml.net/13254/unable-to-link-between-fields-in-different-namespaces
+                  val aggregator  = if (definition.symbol.isTerm) symbolOwner(definition.symbol) else definition.symbol
+                  val aggregation = Aggregation(aggregator, aggregated)
+                  if (aggregations.contains(aggregation)) (aggregations, acc)
+                  else (aggregations + aggregation, acc :+ aggregation)
+              }
+            loop(tail, nextAggregations, (acc :+ definition) ++ aggregationsToAdd)
           case head +: tail =>
             // TODO: What if the relations already exist? Types seem to be wrong.
             assert(!head.isInstanceOf[Aggregation])
-            // TODO: Members can have type parameters.
-            loop(tail, seen, acc :+ head)
+            loop(tail, aggregations, acc :+ head)
           case Seq() => acc
         }
       val newElements = loop(elements, Set.empty, Vector.empty)
@@ -228,6 +242,6 @@ private[scala2plantuml] object DiagramModifications {
     ElementsWithNames(
       elements,
       Map.empty
-    ).removeHidden.removeSynthetics.addMissingElements.calculateNames.combineCompanionObjects.updateConstructors.addRelations.sort
+    ).removeHidden.removeSynthetics.addMissingElements.calculateNames.combineCompanionObjects.updateConstructors.addAggregations.sort
   }
 }

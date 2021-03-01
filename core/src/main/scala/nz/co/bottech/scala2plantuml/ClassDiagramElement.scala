@@ -1,7 +1,5 @@
 package nz.co.bottech.scala2plantuml
 
-import scala.meta.internal.semanticdb.Scala._
-
 sealed trait ClassDiagramElement
 
 object ClassDiagramElement {
@@ -10,15 +8,18 @@ object ClassDiagramElement {
     def symbol: String
     def displayName: String
 
-    def ownerSymbol: String = symbol.ownerChain.takeRight(2).headOption.getOrElse(symbol)
+    def ownerSymbol: String = symbolOwner(symbol)
+  }
+
+  sealed trait Parameterised extends Definition {
+    def typeParameters: Seq[TypeParameter]
   }
 
   final case class TypeParameter(symbol: String, parentSymbols: Seq[String])
 
-  sealed trait Type extends Definition {
+  sealed trait Type extends Parameterised {
     def isObject: Boolean
     def parentSymbols: Seq[String]
-    def typeParameters: Seq[TypeParameter]
 
     def owns(child: Definition): Boolean = child.ownerSymbol == symbol
   }
@@ -83,6 +84,7 @@ object ClassDiagramElement {
       isAbstract: Boolean,
       typeParameters: Seq[TypeParameter])
       extends Member
+      with Parameterised
 
   final case class Aggregation(aggregator: String, aggregated: String) extends ClassDiagramElement
 }
