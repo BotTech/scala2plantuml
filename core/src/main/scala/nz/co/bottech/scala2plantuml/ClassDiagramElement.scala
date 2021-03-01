@@ -6,7 +6,7 @@ sealed trait ClassDiagramElement
 
 object ClassDiagramElement {
 
-  trait Definition {
+  sealed trait Definition extends ClassDiagramElement {
     def symbol: String
     def displayName: String
 
@@ -15,7 +15,7 @@ object ClassDiagramElement {
 
   final case class TypeParameter(symbol: String, parentSymbols: Seq[String])
 
-  sealed trait Type extends ClassDiagramElement with Definition {
+  sealed trait Type extends Definition {
     def isObject: Boolean
     def parentSymbols: Seq[String]
     def typeParameters: Seq[TypeParameter]
@@ -66,7 +66,7 @@ object ClassDiagramElement {
     case object Public         extends Visibility
   }
 
-  sealed trait Member extends ClassDiagramElement with Definition {
+  sealed trait Member extends Definition {
     def visibility: Visibility
     def isAbstract: Boolean
   }

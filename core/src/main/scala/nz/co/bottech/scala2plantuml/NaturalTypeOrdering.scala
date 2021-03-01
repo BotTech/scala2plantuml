@@ -13,12 +13,12 @@ private[scala2plantuml] object NaturalTypeOrdering extends Ordering[String] {
     def normalize: String =
       Normalizer.normalize(str, Normalizer.Form.NFKC)
 
-    def splitOnDigits: Array[String] =
+    def splitOnDigitsAndTypeSeparators: Array[String] =
       str.split("""(?=\p{Digit})(?<!\p{Digit})|(?<=\p{Digit})(?!\p{Digit})|(?=[#.])|(?<=[#.])""")
   }
 
   private def prepare(str: String): Array[String] =
-    str.compressWhitespace.normalize.splitOnDigits
+    str.compressWhitespace.normalize.splitOnDigitsAndTypeSeparators
 
   private def isDigit(s: String) =
     Character.isDigit(s.charAt(0))
@@ -39,17 +39,9 @@ private[scala2plantuml] object NaturalTypeOrdering extends Ordering[String] {
         else findFirstDifference(i + 1)
       else None
 
-    def isMember(i: Int, a: Array[String]): Boolean =
-      i >= 2 && (i + 1) < a.length && a(i + 1) == "."
-
     findFirstDifference(0) match {
-      case Some(i) =>
-        if (isMember(i, xParts))
-          if (isMember(i, yParts)) diff(xParts(i), yParts(i))
-          else -1
-        else if (isMember(i, yParts)) 1
-        else diff(xParts(i), yParts(i))
-      case None => xParts.length - yParts.length
+      case Some(i) => diff(xParts(i), yParts(i))
+      case None    => xParts.length - yParts.length
     }
   }
 }

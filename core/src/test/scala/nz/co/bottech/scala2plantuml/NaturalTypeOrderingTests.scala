@@ -14,20 +14,8 @@ object NaturalTypeOrderingTests extends TestSuite {
     test("member before nested type if earlier") {
       assert(NaturalTypeOrdering.compare("Foo#a.", "Foo#Bar#") < 0)
     }
-    test("member before nested type if same") {
-      assert(NaturalTypeOrdering.compare("Foo#bar.", "Foo#Bar#") < 0)
-    }
-    test("member before nested type if later") {
-      assert(NaturalTypeOrdering.compare("Foo#c.", "Foo#Bar#") < 0)
-    }
     test("member before double nested type if earlier") {
       assert(NaturalTypeOrdering.compare("Foo#a.", "Foo#Bar#Baz#") < 0)
-    }
-    test("member before double nested type if same") {
-      assert(NaturalTypeOrdering.compare("Foo#barbaz.", "Foo#Bar#Baz#") < 0)
-    }
-    test("member before double nested type if later") {
-      assert(NaturalTypeOrdering.compare("Foo#c.", "Foo#Bar#Baz#") < 0)
     }
     test("nested before unrelated if earlier") {
       assert(NaturalTypeOrdering.compare("Foo#Bar#", "Goo#a.") < 0)
