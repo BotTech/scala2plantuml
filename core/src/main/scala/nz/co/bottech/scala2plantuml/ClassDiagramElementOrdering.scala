@@ -6,35 +6,40 @@ private[scala2plantuml] class ClassDiagramElementOrdering(symbolOrdering: Orderi
     extends Ordering[ClassDiagramElement] {
 
   override def compare(x: ClassDiagramElement, y: ClassDiagramElement): Int =
-    x match {
-      case xType: Type               => compareToType(xType, y)
-      case xMember: Member           => compareToMember(xMember, y)
-      case xAggregation: Aggregation => compareToAggregation(xAggregation, y)
+    (x, y) match {
+      case (xMember: Member, yMember: Member)                 => compareMembers(xMember, yMember)
+      case (xMember: Member, yDefinition: Definition)         => compareToMember(xMember, yDefinition)
+      case (xDefinition: Definition, yMember: Member)         => -compareToMember(yMember, xDefinition)
+      case (xDefinition: Definition, yDefinition: Definition) => compareDefinitions(xDefinition, yDefinition)
+      case (xAggregation: Aggregation, _)                     => compareToAggregation(xAggregation, y)
+      case (_, yAggregation: Aggregation)                     => -compareToAggregation(yAggregation, x)
     }
 
-  private def compareToType(x: Type, y: ClassDiagramElement): Int =
-    y match {
-      case yMember: Member if x.owns(yMember) => -1
-      case yMember: Member                    => -compareToMember(yMember, x)
-      case yDefinition: Definition            => -compareToDefinition(yDefinition, x)
-      case yAggregation: Aggregation          => -compareToAggregation(yAggregation, x)
-    }
+  private def compareMembers(x: Member, y: Member): Int = {
+    val xOwnerSymbol = x.ownerSymbol
+    val yOwnerSymbol = y.ownerSymbol
+    // If x and y are siblings then compare by symbols.
+    if (xOwnerSymbol == yOwnerSymbol) compareDefinitions(x, y)
+    // If y is a member of an inner type of x's owner then x comes first.
+    else if (yOwnerSymbol.startsWith(xOwnerSymbol)) -1
+    // If x is a member of an inner type of y's owner then x comes last.
+    else if (xOwnerSymbol.startsWith(yOwnerSymbol)) 1
+    // Otherwise they are unrelated so compare by symbols.
+    else compareDefinitions(x, y)
+  }
 
-  private def compareToMember(x: Member, y: ClassDiagramElement): Int =
-    y match {
-      case yType: Type if yType.owns(x)                                            => 1
-      case yMember: Member if x.ownerSymbol == yMember.ownerSymbol                 => symbolOrdering.compare(x.symbol, yMember.symbol)
-      case yDefinition: Definition if yDefinition.symbol.startsWith(x.ownerSymbol) => -1
-      case yDefinition: Definition if x.symbol.startsWith(yDefinition.ownerSymbol) => 1
-      case yDefinition: Definition                                                 => -compareToDefinition(yDefinition, x)
-      case yAggregation: Aggregation                                               => -compareToAggregation(yAggregation, x)
-    }
+  private def compareToMember(x: Member, y: Definition): Int = {
+    val xOwnerSymbol = x.ownerSymbol
+    // If y is the owner of x then x comes last
+    if (xOwnerSymbol == y.symbol) 1
+    // If y is an inner type of x's owner then x comes first.
+    else if (y.symbol.startsWith(xOwnerSymbol)) -1
+    // Otherwise they are unrelated so compare by symbols.
+    else compareDefinitions(x, y)
+  }
 
-  private def compareToDefinition(x: Definition, y: ClassDiagramElement): Int =
-    y match {
-      case yDefinition: Definition   => symbolOrdering.compare(x.symbol, yDefinition.symbol)
-      case yAggregation: Aggregation => -compareToAggregation(yAggregation, x)
-    }
+  private def compareDefinitions(x: Definition, y: Definition): Int =
+    symbolOrdering.compare(x.symbol, y.symbol)
 
   private def compareToAggregation(x: Aggregation, y: ClassDiagramElement): Int =
     y match {

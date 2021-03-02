@@ -54,5 +54,15 @@ object FieldTests extends TestSuite with ClassDiagramTests {
           |}""".stripMargin
       )
     }
+    test("field type") {
+      success(
+        "FieldType#",
+        """class FieldType {
+          |  + {field} field
+          |}
+          |FieldType o-- Trait
+          |interface Trait""".stripMargin
+      )
+    }
   }
 }

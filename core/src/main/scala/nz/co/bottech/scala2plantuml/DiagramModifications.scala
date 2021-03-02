@@ -5,7 +5,6 @@ import nz.co.bottech.scala2plantuml.ClassDiagramPrinter.Options.Unsorted
 import nz.co.bottech.scala2plantuml.ClassDiagramPrinter._
 
 import scala.annotation.tailrec
-import scala.meta.internal.semanticdb.Scala._
 
 private[scala2plantuml] object DiagramModifications {
 
@@ -16,7 +15,7 @@ private[scala2plantuml] object DiagramModifications {
 
     import elementsWithNames._
 
-    def removeHidden(implicit options: Options): ElementsWithNames =
+    def removeHidden(options: Options): ElementsWithNames =
       options.hide match {
         case Options.HideMatching(patterns) =>
           val tests                               = patterns.map(patternToRegex(_).asMatchPredicate)
@@ -54,7 +53,7 @@ private[scala2plantuml] object DiagramModifications {
         case Options.ShowAll => elementsWithNames
       }
 
-    def removeSynthetics(implicit options: Options): ElementsWithNames =
+    def removeSynthetics(options: Options): ElementsWithNames =
       options.syntheticMethods match {
         case Options.HideSyntheticMethods =>
           val newElements = elements.filterNot {
@@ -65,7 +64,27 @@ private[scala2plantuml] object DiagramModifications {
         case Options.ShowSyntheticMethods => elementsWithNames
       }
 
-    def addMissingElements(implicit options: Options): ElementsWithNames =
+    def removeDuplicateAggregations: ElementsWithNames = {
+      @tailrec
+      def loop(
+          remaining: Seq[ClassDiagramElement],
+          aggregations: Set[Aggregation],
+          acc: Vector[ClassDiagramElement]
+        ): Vector[ClassDiagramElement] =
+        remaining match {
+          case (aggregation: Aggregation) +: tail if aggregations.contains(aggregation) =>
+            loop(tail, aggregations, acc)
+          case (aggregation: Aggregation) +: tail =>
+            loop(tail, aggregations + aggregation, acc :+ aggregation)
+          case head +: tail =>
+            loop(tail, aggregations, acc :+ head)
+          case Seq() => acc
+        }
+      val newElements = loop(elements, Set.empty, Vector.empty)
+      elementsWithNames.copy(elements = newElements)
+    }
+
+    def addMissingElements(options: Options): ElementsWithNames =
       options.sorting match {
         case Unsorted =>
           // Fields may appear before their parents so we may need to insert duplicate parents and we have to do that
@@ -107,7 +126,7 @@ private[scala2plantuml] object DiagramModifications {
         case _ => elementsWithNames
       }
 
-    def calculateNames(implicit options: Options): ElementsWithNames = {
+    def calculateNames(options: Options): ElementsWithNames = {
       assert(names.isEmpty)
       def typeParameterSymbols(parameters: Seq[TypeParameter]): Seq[String] =
         parameters.flatMap(parameter => parameter.symbol +: parameter.parentSymbols)
@@ -149,7 +168,7 @@ private[scala2plantuml] object DiagramModifications {
       elementsWithNames.copy(names = newNames)
     }
 
-    def combineCompanionObjects(implicit options: Options): ElementsWithNames =
+    def combineCompanionObjects(options: Options): ElementsWithNames =
       options.companionObjects match {
         case Options.CombineAsStatic =>
           val nonObjectTypeNames = elements.collect {
@@ -172,7 +191,7 @@ private[scala2plantuml] object DiagramModifications {
           elementsWithNames.copy(names = newNames)
       }
 
-    def updateConstructors(implicit options: Options): ElementsWithNames =
+    def updateConstructors(options: Options): ElementsWithNames =
       options.constructor match {
         case Options.HideConstructors =>
           val newElements = elements.filterNot {
@@ -191,37 +210,7 @@ private[scala2plantuml] object DiagramModifications {
           elementsWithNames.copy(names = newNames)
       }
 
-    def addAggregations: ElementsWithNames = {
-      @tailrec
-      def loop(
-          remaining: Seq[ClassDiagramElement],
-          aggregations: Set[Aggregation],
-          acc: Vector[ClassDiagramElement]
-        ): Vector[ClassDiagramElement] =
-        remaining match {
-          case (definition: Parameterised) +: tail =>
-            val (nextAggregations, aggregationsToAdd) = definition.typeParameters
-              .flatMap(_.parentSymbols)
-              .foldLeft((aggregations, Seq.empty[Aggregation])) {
-                case ((aggregations, acc), aggregated) =>
-                  // This is a workaround for https://forum.plantuml.net/13254/unable-to-link-between-fields-in-different-namespaces
-                  val aggregator  = if (definition.symbol.isTerm) symbolOwner(definition.symbol) else definition.symbol
-                  val aggregation = Aggregation(aggregator, aggregated)
-                  if (aggregations.contains(aggregation)) (aggregations, acc)
-                  else (aggregations + aggregation, acc :+ aggregation)
-              }
-            loop(tail, nextAggregations, (acc :+ definition) ++ aggregationsToAdd)
-          case head +: tail =>
-            // TODO: What if the relations already exist? Types seem to be wrong.
-            assert(!head.isInstanceOf[Aggregation])
-            loop(tail, aggregations, acc :+ head)
-          case Seq() => acc
-        }
-      val newElements = loop(elements, Set.empty, Vector.empty)
-      elementsWithNames.copy(elements = newElements)
-    }
-
-    def sort(implicit options: Options): ElementsWithNames = {
+    def sort(options: Options): ElementsWithNames = {
       val newElements = options.sorting match {
         case Options.NaturalSortOrder => elements.sorted(new ClassDiagramElementOrdering(NaturalTypeOrdering))
         case Options.Unsorted         => elements
@@ -237,11 +226,16 @@ private[scala2plantuml] object DiagramModifications {
     }
   }
 
-  def apply(elements: Seq[ClassDiagramElement], options: Options): ElementsWithNames = {
-    implicit val opts: Options = options
+  def apply(elements: Seq[ClassDiagramElement], options: Options): ElementsWithNames =
     ElementsWithNames(
       elements,
       Map.empty
-    ).removeHidden.removeSynthetics.addMissingElements.calculateNames.combineCompanionObjects.updateConstructors.addAggregations.sort
-  }
+    ).removeHidden(options)
+      .removeSynthetics(options)
+      .removeDuplicateAggregations
+      .addMissingElements(options)
+      .calculateNames(options)
+      .combineCompanionObjects(options)
+      .updateConstructors(options)
+      .sort(options)
 }

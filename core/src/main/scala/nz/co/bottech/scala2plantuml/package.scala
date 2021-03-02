@@ -6,6 +6,9 @@ import scala.util.matching.Regex
 
 package object scala2plantuml {
 
+  private[scala2plantuml] val JavaStdLibPattern: String = "java/**"
+  private[scala2plantuml] val ScalaStdLibPattern: String = "scala/**"
+
   private[scala2plantuml] def patternToRegex(pattern: String): Pattern =
     Pattern.compile(
       pattern

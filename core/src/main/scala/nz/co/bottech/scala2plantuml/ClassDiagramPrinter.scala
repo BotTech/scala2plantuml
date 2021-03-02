@@ -1,5 +1,6 @@
 package nz.co.bottech.scala2plantuml
 
+import nz.co.bottech.scala2plantuml
 import nz.co.bottech.scala2plantuml.ClassDiagramElement._
 import nz.co.bottech.scala2plantuml.ClassDiagramPrinter.Options._
 
@@ -25,7 +26,8 @@ object ClassDiagramPrinter {
     // Often used for constructors and other "constructors" like apply.
     val CreateStereotype: Option[String] = Some("Create")
 
-    val ScalaStdLibPattern: String = "scala/**"
+    val JavaStdLibPattern: String  = scala2plantuml.JavaStdLibPattern
+    val ScalaStdLibPattern: String = scala2plantuml.ScalaStdLibPattern
 
     val Default: Options = Options(
       companionObjects = CombineAsStatic,
@@ -74,7 +76,7 @@ object ClassDiagramPrinter {
     // Pattern supports two wildcards:
     // - ** -> matches any character
     // - *  -> matches all characters except for '/'
-    final case class HideMatching(patterns: Set[String] = Set(ScalaStdLibPattern)) extends HideOption
+    final case class HideMatching(patterns: Set[String] = Set(ScalaStdLibPattern, JavaStdLibPattern)) extends HideOption
 
     sealed trait NamingOption
     case object FullyQualified     extends NamingOption

@@ -65,5 +65,23 @@ object MethodTests extends TestSuite with ClassDiagramTests {
           |}""".stripMargin
       )
     }
+    test("method return type") {
+      success(
+        "MethodReturnType#",
+        """class MethodReturnType {
+          |  + {method} method
+          |}
+          |MethodReturnType o-- Trait
+          |interface Trait""".stripMargin
+      )
+    }
+    test("method returns self") {
+      success(
+        "MethodReturnsSelf#",
+        """class MethodReturnsSelf {
+          |  + {method} method
+          |}""".stripMargin
+      )
+    }
   }
 }

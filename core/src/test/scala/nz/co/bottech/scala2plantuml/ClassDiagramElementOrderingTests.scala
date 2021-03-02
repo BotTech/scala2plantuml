@@ -1,6 +1,6 @@
 package nz.co.bottech.scala2plantuml
 
-import nz.co.bottech.scala2plantuml.ClassDiagramElement.{Aggregation, Class, Method, Visibility}
+import nz.co.bottech.scala2plantuml.ClassDiagramElement._
 import utest._
 
 object ClassDiagramElementOrderingTests extends TestSuite {
@@ -34,6 +34,25 @@ object ClassDiagramElementOrderingTests extends TestSuite {
   private val typBToB = Aggregation(typB.symbol, typB.symbol)
   private val typBToC = Aggregation(typB.symbol, typC.symbol)
   private val typCToA = Aggregation(typC.symbol, typA.symbol)
+
+  private val exampleClass = Class(
+    "FieldRelation",
+    "nz/co/bottech/scala2plantuml/examples/field/FieldRelation#",
+    isObject = false,
+    isAbstract = false,
+    Seq.empty,
+    Seq.empty
+  )
+
+  private val exampleField = Field(
+    "field",
+    "nz/co/bottech/scala2plantuml/examples/field/FieldRelation#field.",
+    Visibility.Public,
+    isAbstract = false
+  )
+
+  private val exampleInterface =
+    Interface("Trait", "nz/co/bottech/scala2plantuml/examples/field/Trait#", Seq.empty, Seq.empty)
 
   val tests: Tests = Tests {
     test("type") {
@@ -208,6 +227,19 @@ object ClassDiagramElementOrderingTests extends TestSuite {
         }
         test("after when later") {
           assert(lexicographic.compare(typBToB, typAToC) > 0)
+        }
+      }
+    }
+    test("examples") {
+      test("field relation") {
+        test("exampleInterface vs exampleClass") {
+          assert(lexicographic.compare(exampleInterface, exampleClass) > 0)
+        }
+        test("exampleInterface vs exampleField") {
+          assert(lexicographic.compare(exampleInterface, exampleField) > 0)
+        }
+        test("exampleClass vs exampleField") {
+          assert(lexicographic.compare(exampleClass, exampleField) < 0)
         }
       }
     }

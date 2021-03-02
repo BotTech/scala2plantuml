@@ -43,7 +43,7 @@ private[scala2plantuml] object SymbolProcessor {
               // Traverse breadth-first so that we process a full symbol before moving onto the next.
               val nextSymbols = tail ++ symbolReferences(symbolInformation)
               val nextSeen    = seen + current
-              loop(nextSymbols, nextSeen, elements ++ acc)
+              loop(nextSymbols, nextSeen, elements ++: acc)
             case None =>
               logger.warn(s"Missing symbol: $current")
               loop(remaining.init, seen, acc)
@@ -69,55 +69,63 @@ private[scala2plantuml] object SymbolProcessor {
       symbolTable: SymbolTable,
       typeIndex: TypeIndex,
       definitionIndex: DefinitionIndex
-    ): Vector[ClassDiagramElement] =
+    ): Seq[ClassDiagramElement] =
     symbolInformation.signature match {
-      case Signature.Empty         => Vector.empty
-      case _: ValueSignature       => Vector.empty
-      case clazz: ClassSignature   => Vector(classElement(symbolInformation, clazz, ignore, symbolTable, typeIndex))
-      case method: MethodSignature => Vector(methodElement(symbolInformation, method, symbolTable, definitionIndex))
-      case _: TypeSignature        => Vector.empty
+      case Signature.Empty         => Seq.empty
+      case _: ValueSignature       => Seq.empty // TODO
+      case clazz: ClassSignature   => classElement(symbolInformation, clazz, ignore, symbolTable, typeIndex)
+      case method: MethodSignature => methodElements(symbolInformation, method, symbolTable, definitionIndex)
+      case _: TypeSignature        => Seq.empty // We can't do much with this because we don't know the aggregator.
     }
 
+  // TODO: Why ignore here?
   private def classElement(
       symbolInformation: SymbolInformation,
       clazz: ClassSignature,
       ignore: String => Boolean,
       symbolTable: SymbolTable,
       typeIndex: TypeIndex
-    ): ClassDiagramElement = {
+    ): Seq[ClassDiagramElement] = {
     import symbolInformation.{displayName, symbol}
     val parentSymbols  = clazz.parents.flatMap(typeSymbols)
-    val typeParameters = clazz.typeParameters.map(scopeTypeParameters(_, symbolTable)).getOrElse(Seq.empty)
-    if (isTrait(symbolInformation))
-      Interface(displayName, symbol, parentSymbols, typeParameters)
-    else if (isAnnotation(symbolInformation, ignore, typeIndex))
-      UMLAnnotation(displayName, symbol, isObject(symbolInformation), parentSymbols, typeParameters)
-    else if (isEnum(symbolInformation, ignore, typeIndex))
-      Enum(displayName, symbol, isObject(symbolInformation), parentSymbols, typeParameters)
-    else
-      Class(
-        displayName,
-        symbol,
-        isObject(symbolInformation),
-        isAbstract(symbolInformation),
-        parentSymbols,
-        typeParameters
-      )
+    val typeParameters = optionalScopeTypeParameters(clazz.typeParameters, symbolTable)
+    val element =
+      if (isTrait(symbolInformation))
+        Interface(displayName, symbol, parentSymbols, typeParameters)
+      else if (isAnnotation(symbolInformation, ignore, typeIndex))
+        UMLAnnotation(displayName, symbol, isObject(symbolInformation), parentSymbols, typeParameters)
+      else if (isEnum(symbolInformation, ignore, typeIndex))
+        Enum(displayName, symbol, isObject(symbolInformation), parentSymbols, typeParameters)
+      else
+        Class(
+          displayName,
+          symbol,
+          isObject(symbolInformation),
+          isAbstract(symbolInformation),
+          parentSymbols,
+          typeParameters
+        )
+    val aggregator                = aggregatorSymbol(symbolInformation)
+    val typeParameterAggregations = optionalScopeAggregations(aggregator, clazz.typeParameters, symbolTable)
+    element +: typeParameterAggregations
   }
 
-  private def methodElement(
+  private def methodElements(
       symbolInformation: SymbolInformation,
       method: MethodSignature,
       symbolTable: SymbolTable,
       definitionIndex: DefinitionIndex
-    ): ClassDiagramElement = {
+    ): Seq[ClassDiagramElement] = {
     import symbolInformation.{displayName, symbol}
     val visibility = symbolVisibility(symbolInformation)
-    if (isField(symbolInformation))
-      Field(displayName, symbol, visibility, isAbstract(symbolInformation))
-    else {
-      val typeParameters = method.typeParameters.map(scopeTypeParameters(_, symbolTable)).getOrElse(Seq.empty)
-      Method(
+    val aggregator = aggregatorSymbol(symbolInformation)
+    if (isField(symbolInformation)) {
+      val element                = Field(displayName, symbol, visibility, isAbstract(symbolInformation))
+      val returnTypeAggregations = typeAggregations(aggregator, method.returnType)
+      element +: returnTypeAggregations
+    } else {
+      val typeParameters = optionalScopeTypeParameters(method.typeParameters, symbolTable)
+      val element = Method(
         displayName,
         symbol,
         visibility,
@@ -126,6 +134,9 @@ private[scala2plantuml] object SymbolProcessor {
         isAbstract(symbolInformation),
         typeParameters
       )
+      val typeParameterAggregations = optionalScopeAggregations(aggregator, method.typeParameters, symbolTable)
+      val returnTypeAggregations    = typeAggregations(aggregator, method.returnType)
+      element +: (typeParameterAggregations ++ returnTypeAggregations)
     }
   }
 
@@ -209,16 +220,47 @@ private[scala2plantuml] object SymbolProcessor {
       case StructuralType(tpe, _)  => typeSymbols(tpe)
     }
 
-  private def scopeTypeParameters(scope: Scope, table: SymbolTable): Seq[TypeParameter] =
-    // TODO: What about missing symbols?
+  private def optionalScopeTypeParameters(maybeScope: Option[Scope], symbolTable: SymbolTable): Seq[TypeParameter] =
     // TODO: What to do about hardlinks?
-    scope.symlinks
-      .flatMap(table.info)
-      .map(info => (info, info.signature))
-      .collect {
-        // TODO: What to do about higher-kinded types?
-        case (info, typ: TypeSignature) => TypeParameter(info.symbol, typeSymbols(typ.upperBound))
-      }
+    maybeScope.map {
+      _.symlinks
+        .flatMap(symbolTable.info)
+        .map(info => (info, info.signature))
+        .collect {
+          case (info, typ: TypeSignature) => TypeParameter(info.symbol, typeSymbols(typ.upperBound))
+        }
+    }.getOrElse(Seq.empty)
+
+  private def aggregatorSymbol(symbolInformation: SymbolInformation): String = {
+    val symbol = symbolInformation.symbol
+    // This is a workaround for https://forum.plantuml.net/13254/unable-to-link-between-fields-in-different-namespaces
+    if (symbol.isTerm) symbolOwner(symbol) else symbol
+  }
+
+  private def optionalScopeAggregations(
+      aggregator: String,
+      maybeScope: Option[Scope],
+      symbolTable: SymbolTable
+    ): Seq[Aggregation] =
+    // TODO: What to do about hardlinks?
+    maybeScope.map {
+      _.symlinks
+        .flatMap(symbolTable.info)
+        .map(_.signature)
+        .collect({ case typ: TypeSignature => typ })
+        .flatMap(typeSignatureAggregations(aggregator, _))
+    }.getOrElse(Seq.empty)
+
+  private def typeSignatureAggregations(aggregator: String, typ: TypeSignature): Seq[Aggregation] =
+    typeParameterAggregations(aggregator, typ.typeParameters) ++
+      typeAggregations(aggregator, typ.lowerBound) ++
+      typeAggregations(aggregator, typ.upperBound)
+
+  private def typeParameterAggregations(aggregator: String, maybeScope: Option[Scope]): Seq[Aggregation] =
+    optionalScopeReferences(maybeScope).filterNot(_ == aggregator).map(Aggregation(aggregator, _))
+
+  private def typeAggregations(aggregator: String, typ: Type): Seq[Aggregation] =
+    typeSymbols(typ).filterNot(_ == aggregator).map(Aggregation(aggregator, _))
 
   private def symbolVisibility(symbolInformation: SymbolInformation): Visibility =
     symbolInformation.access match {
