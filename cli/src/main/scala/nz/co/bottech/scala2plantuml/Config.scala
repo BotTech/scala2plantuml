@@ -6,7 +6,7 @@ import java.net.URL
 final case class Config(
     symbol: String = "",
     includes: Set[String] = Set(),
-    excludes: Set[String] = Set("scala/**", "java/**"),
+    excludes: Set[String] = Set(ScalaStdLibPattern, JavaStdLibPattern),
     urls: Vector[URL] = Vector.empty,
     projects: Vector[String] = Vector.empty,
     sourceRoots: Vector[String] = Vector("src/main/scala"),

@@ -72,10 +72,10 @@ private[scala2plantuml] object SymbolProcessor {
     ): Seq[ClassDiagramElement] =
     symbolInformation.signature match {
       case Signature.Empty         => Seq.empty
-      case _: ValueSignature       => Seq.empty // TODO
       case clazz: ClassSignature   => classElement(symbolInformation, clazz, ignore, symbolTable, typeIndex)
       case method: MethodSignature => methodElements(symbolInformation, method, symbolTable, definitionIndex)
       case _: TypeSignature        => Seq.empty // We can't do much with this because we don't know the aggregator.
+      case _: ValueSignature       => Seq.empty // Same here.
     }
 
   // TODO: Why ignore here?
@@ -135,8 +135,9 @@ private[scala2plantuml] object SymbolProcessor {
         typeParameters
       )
       val typeParameterAggregations = optionalScopeAggregations(aggregator, method.typeParameters, symbolTable)
+      val parameterAggregations     = method.parameterLists.flatMap(scopeAggregations(aggregator, _, symbolTable))
       val returnTypeAggregations    = typeAggregations(aggregator, method.returnType)
-      element +: (typeParameterAggregations ++ returnTypeAggregations)
+      element +: (typeParameterAggregations ++ parameterAggregations ++ returnTypeAggregations)
     }
   }
 
@@ -242,14 +243,22 @@ private[scala2plantuml] object SymbolProcessor {
       maybeScope: Option[Scope],
       symbolTable: SymbolTable
     ): Seq[Aggregation] =
+    maybeScope.map(scopeAggregations(aggregator, _, symbolTable)).getOrElse(Seq.empty)
+
+  private def scopeAggregations(
+      aggregator: String,
+      scope: Scope,
+      symbolTable: SymbolTable
+    ): Seq[Aggregation] =
     // TODO: What to do about hardlinks?
-    maybeScope.map {
-      _.symlinks
-        .flatMap(symbolTable.info)
-        .map(_.signature)
-        .collect({ case typ: TypeSignature => typ })
-        .flatMap(typeSignatureAggregations(aggregator, _))
-    }.getOrElse(Seq.empty)
+    scope.symlinks
+      .flatMap(symbolTable.info)
+      .map(_.signature)
+      .flatMap {
+        case typ: TypeSignature    => typeSignatureAggregations(aggregator, typ)
+        case value: ValueSignature => typeAggregations(aggregator, value.tpe)
+        case _                     => Seq.empty
+      }
 
   private def typeSignatureAggregations(aggregator: String, typ: TypeSignature): Seq[Aggregation] =
     typeParameterAggregations(aggregator, typ.typeParameters) ++

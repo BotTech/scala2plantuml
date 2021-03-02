@@ -83,5 +83,15 @@ object MethodTests extends TestSuite with ClassDiagramTests {
           |}""".stripMargin
       )
     }
+    test("method parameter") {
+      success(
+        "MethodParameter#",
+        """class MethodParameter {
+          |  + {method} method
+          |}
+          |MethodParameter o-- Trait
+          |interface Trait""".stripMargin
+      )
+    }
   }
 }
