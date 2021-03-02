@@ -11,7 +11,9 @@ import scala.meta.internal.symtab.SymbolTable
 
 private[scala2plantuml] object SymbolProcessor {
 
-  private val logger = LoggerFactory.getLogger(getClass.getName.dropRight(1))
+  private val TerminalTypes = Set("scala/Any#", "scala/Nothing#")
+
+  private val Logger = LoggerFactory.getLogger(getClass.getName.dropRight(1))
 
   // TODO: Perhaps we should return a different type than the types used for rendering.
   def processSymbol(
@@ -38,14 +40,14 @@ private[scala2plantuml] object SymbolProcessor {
         case current +: tail =>
           symbolTable.info(current) match {
             case Some(symbolInformation: SymbolInformation) =>
-              logger.trace(symbolInformationString(symbolInformation))
+              Logger.trace(symbolInformationString(symbolInformation))
               val elements = symbolElements(symbolInformation, ignore, symbolTable, typeIndex, definitionIndex)
               // Traverse breadth-first so that we process a full symbol before moving onto the next.
               val nextSymbols = tail ++ symbolReferences(symbolInformation)
               val nextSeen    = seen + current
               loop(nextSymbols, nextSeen, elements ++: acc)
             case None =>
-              logger.warn(s"Missing symbol: $current")
+              Logger.warn(s"Missing symbol: $current")
               loop(remaining.init, seen, acc)
           }
         case _ => acc
@@ -254,21 +256,24 @@ private[scala2plantuml] object SymbolProcessor {
       .flatMap(symbolTable.info)
       .map(_.signature)
       .flatMap {
-        case typ: TypeSignature    => typeSignatureAggregations(aggregator, typ)
+        case typ: TypeSignature    => typeSignatureAggregations(aggregator, typ, symbolTable)
         case value: ValueSignature => typeAggregations(aggregator, value.tpe)
         case _                     => Seq.empty
       }
 
-  private def typeSignatureAggregations(aggregator: String, typ: TypeSignature): Seq[Aggregation] =
-    typeParameterAggregations(aggregator, typ.typeParameters) ++
+  private def typeSignatureAggregations(
+      aggregator: String,
+      typ: TypeSignature,
+      symbolTable: SymbolTable
+    ): Seq[Aggregation] =
+    optionalScopeAggregations(aggregator, typ.typeParameters, symbolTable) ++
       typeAggregations(aggregator, typ.lowerBound) ++
       typeAggregations(aggregator, typ.upperBound)
 
-  private def typeParameterAggregations(aggregator: String, maybeScope: Option[Scope]): Seq[Aggregation] =
-    optionalScopeReferences(maybeScope).filterNot(_ == aggregator).map(Aggregation(aggregator, _))
-
   private def typeAggregations(aggregator: String, typ: Type): Seq[Aggregation] =
-    typeSymbols(typ).filterNot(_ == aggregator).map(Aggregation(aggregator, _))
+    typeSymbols(typ)
+      .filterNot(symbol => symbol == aggregator || TerminalTypes.contains(symbol))
+      .map(Aggregation(aggregator, _))
 
   private def symbolVisibility(symbolInformation: SymbolInformation): Visibility =
     symbolInformation.access match {
