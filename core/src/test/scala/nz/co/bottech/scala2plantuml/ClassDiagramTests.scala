@@ -1,6 +1,6 @@
 package nz.co.bottech.scala2plantuml
 
-import nz.co.bottech.scala2plantuml.ClassDiagramPrinter.Options
+import nz.co.bottech.scala2plantuml.ClassDiagramRenderer.Options
 import utest.assert
 
 trait ClassDiagramTests {
@@ -26,6 +26,6 @@ trait ClassDiagramTests {
         stdLibSymbol,
         this.getClass.getClassLoader
       )
-    ClassDiagramPrinter.printSnippet(elements, options)
+    ClassDiagramRenderer.renderSnippet(elements, options)
   }
 }

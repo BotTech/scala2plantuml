@@ -1,8 +1,8 @@
 package nz.co.bottech.scala2plantuml
 
 import nz.co.bottech.scala2plantuml.ClassDiagramElement._
-import nz.co.bottech.scala2plantuml.ClassDiagramPrinter.Options.Unsorted
-import nz.co.bottech.scala2plantuml.ClassDiagramPrinter._
+import nz.co.bottech.scala2plantuml.ClassDiagramRenderer.Options.Unsorted
+import nz.co.bottech.scala2plantuml.ClassDiagramRenderer._
 
 import scala.annotation.tailrec
 

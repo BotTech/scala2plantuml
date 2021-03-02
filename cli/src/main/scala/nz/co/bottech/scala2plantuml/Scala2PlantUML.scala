@@ -1,7 +1,7 @@
 package nz.co.bottech.scala2plantuml
 
 import ch.qos.logback.classic.{Level, Logger}
-import nz.co.bottech.scala2plantuml.ClassDiagramPrinter.Options
+import nz.co.bottech.scala2plantuml.ClassDiagramRenderer.Options
 import org.slf4j.LoggerFactory
 import scopt.{DefaultOParserSetup, OParser, OParserSetup}
 
@@ -207,7 +207,7 @@ object Scala2PlantUML extends App {
       config.ignore,
       classLoader(config)
     )
-    val diagram = ClassDiagramPrinter.print(elements, Options.Default)
+    val diagram = ClassDiagramRenderer.render(elements, Options.Default)
     config.outputFile match {
       case Some(file) =>
         Option(file.getParentFile).foreach(_.mkdirs())

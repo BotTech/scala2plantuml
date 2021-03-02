@@ -1,6 +1,6 @@
 package nz.co.bottech.scala2plantuml
 
-import nz.co.bottech.scala2plantuml.ClassDiagramPrinter.Options
+import nz.co.bottech.scala2plantuml.ClassDiagramRenderer.Options
 import utest.{test, TestSuite, Tests}
 
 object ConstructorTests extends TestSuite with ClassDiagramTests {
