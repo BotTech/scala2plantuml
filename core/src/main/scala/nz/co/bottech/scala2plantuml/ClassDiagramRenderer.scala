@@ -8,8 +8,6 @@ import scala.annotation.tailrec
 
 object ClassDiagramRenderer {
 
-  // TODO: Use java.lang.Character.isJavaIdentifierPart(char)
-  //  See scala.meta.internal.semanticdb.Scala.Names.encode
   private val SomewhatSensibleName = """[\p{Alnum}._-]+""".r
 
   final case class Options(
@@ -96,7 +94,6 @@ object ClassDiagramRenderer {
        |@enduml""".stripMargin
 
   def renderSnippet(elements: Seq[ClassDiagramElement], options: Options): String = {
-    // TODO: The modifications should be done independently to the rendering.
     val elementsWithNames = DiagramModifications(elements, options)
     val builder           = new StringBuilder
     def owns(outer: Type, current: ClassDiagramElement): Boolean =

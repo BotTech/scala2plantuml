@@ -23,7 +23,7 @@ private[scala2plantuml] class ColourConverter extends ForegroundCompositeConvert
 
 private[scala2plantuml] object ColourConverter {
 
-  // FIXME: How else can we programmatically control this?
+  // TODO: How else can we programmatically control this?
   @volatile
   var enabled: Boolean = true
 }
