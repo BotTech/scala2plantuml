@@ -93,5 +93,23 @@ object MethodTests extends TestSuite with ClassDiagramTests {
           |interface Trait""".stripMargin
       )
     }
+    test("higher-kinded method parameter") {
+      success(
+        "HigherKindedParameter#",
+        """class HigherKindedParameter {
+          |  + {method} method
+          |}""".stripMargin
+      )
+    }
+    test("higher-kinded method parameter filled") {
+      success(
+        "HigherKindedParameterFilled#",
+        """class HigherKindedParameterFilled {
+          |  + {method} method
+          |}
+          |HigherKindedParameterFilled o-- Trait
+          |interface Trait""".stripMargin
+      )
+    }
   }
 }
