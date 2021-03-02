@@ -22,7 +22,6 @@ trait ClassDiagramTests {
       .fromSymbol(
         globalSymbol(symbol),
         List("META-INF/semanticdb/core/src/test/scala"),
-        // TODO: Add tests where we don't ignore these.
         stdLibSymbol,
         this.getClass.getClassLoader
       )

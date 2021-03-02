@@ -104,7 +104,6 @@ private[scala2plantuml] object DiagramModifications {
                 val owner = member.ownerSymbol
                 if (previousType.exists(_.symbol == owner)) loop(tail, previousType, acc :+ member)
                 else {
-                  // TODO: Do we need to cache this?
                   def createClass =
                     Class(
                       scalaTypeName(symbolToScalaIdentifier(owner)),

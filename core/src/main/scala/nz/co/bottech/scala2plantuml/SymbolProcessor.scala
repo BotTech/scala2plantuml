@@ -78,7 +78,6 @@ private[scala2plantuml] object SymbolProcessor {
       case _: ValueSignature       => Seq.empty // Same here.
     }
 
-  // TODO: Why ignore here?
   private def classElement(
       symbolInformation: SymbolInformation,
       clazz: ClassSignature,
@@ -181,11 +180,11 @@ private[scala2plantuml] object SymbolProcessor {
       case WithType(types)  => types.flatMap(typeReferences)
       case UnionType(types) => types.flatMap(typeReferences)
       case _: ConstantType  =>
-        // TODO: Need to do something better here.
+        // TODO: Do something better with constant types.
         Seq.empty
       case RepeatedType(tpe)                  => typeReferences(tpe)
       case ExistentialType(tpe, declarations) =>
-        // TODO: Existential types ought to be shown as their own type.
+        // TODO: Show existential types as their own type.
         typeReferences(tpe) ++ optionalScopeReferences(declarations)
       case TypeRef(_, symbol, typeArguments) =>
         symbol +: typeArguments.flatMap(typeReferences)
@@ -206,7 +205,7 @@ private[scala2plantuml] object SymbolProcessor {
       case WithType(types)  => types.flatMap(typeSymbols)
       case UnionType(types) => types.flatMap(typeSymbols)
       case _: ConstantType  =>
-        // TODO: Need to do something better here.
+        // TODO: Do something better with constant types.
         Seq.empty
       case RepeatedType(tpe)       => typeSymbols(tpe)
       case ExistentialType(tpe, _) => typeSymbols(tpe)

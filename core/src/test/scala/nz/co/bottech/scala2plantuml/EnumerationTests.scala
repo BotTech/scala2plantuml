@@ -21,6 +21,5 @@ object EnumerationTests extends TestSuite with ClassDiagramTests {
           |}""".stripMargin
       )
     }
-    // TODO: Java enums (java.lang.Enum)
   }
 }
