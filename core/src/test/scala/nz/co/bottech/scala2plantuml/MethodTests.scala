@@ -111,5 +111,13 @@ object MethodTests extends TestSuite with ClassDiagramTests {
           |interface Trait""".stripMargin
       )
     }
+    test("existential method parameter") {
+      success(
+        "ExistentialParameter#",
+        """class ExistentialParameter {
+          |  + {method} method
+          |}""".stripMargin
+      )
+    }
   }
 }

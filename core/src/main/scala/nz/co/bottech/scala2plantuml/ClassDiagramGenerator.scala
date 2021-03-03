@@ -13,9 +13,10 @@ object ClassDiagramGenerator {
     ): Seq[ClassDiagramElement] = {
     val loader          = new SemanticdbLoader(prefixes, classloader)
     val symbolTable     = aggregateSymbolTable(loader)
-    val typeIndex       = new TypeIndex(symbolTable)
+    val symbolIndex     = new SymbolIndex(ignore, symbolTable)
+    val typeIndex       = new TypeIndex(symbolIndex)
     val definitionIndex = new DefinitionIndex(loader)
-    SymbolProcessor.processSymbol(symbol, ignore, symbolTable, typeIndex, definitionIndex)
+    SymbolProcessor.processSymbol(symbol, symbolIndex, typeIndex, definitionIndex)
   }
 
   private def aggregateSymbolTable(loader: SemanticdbLoader) =

@@ -7,7 +7,6 @@ import scala.annotation.tailrec
 import scala.collection.immutable.HashSet
 import scala.meta.internal.semanticdb.Scala._
 import scala.meta.internal.semanticdb._
-import scala.meta.internal.symtab.SymbolTable
 
 private[scala2plantuml] object SymbolProcessor {
 
@@ -18,40 +17,39 @@ private[scala2plantuml] object SymbolProcessor {
   // TODO: Perhaps we should return a different type than the types used for rendering.
   def processSymbol(
       symbol: String,
-      ignore: String => Boolean,
-      symbolTable: SymbolTable,
+      symbolIndex: SymbolIndex,
       typeIndex: TypeIndex,
       definitionIndex: DefinitionIndex
     ): Seq[ClassDiagramElement] = {
     def skip(symbol: String, seen: HashSet[String]): Boolean =
-      // Only global symbols can be found in the symbol table.
-      !symbol.isGlobal ||
-        seen.contains(symbol) ||
-        ignore(symbol)
+      seen.contains(symbol) || !symbolIndex.indexOf(symbol)
     @tailrec
     def loop(
         remaining: Vector[String],
         seen: HashSet[String],
         acc: Vector[ClassDiagramElement]
-      ): Vector[ClassDiagramElement] =
+      ): Vector[ClassDiagramElement] = {
+      if (Thread.currentThread().isInterrupted)
+        throw new InterruptedException("Interrupted while processing symbol.")
       remaining match {
         case current +: tail if skip(current, seen) =>
           loop(tail, seen, acc)
         case current +: tail =>
-          symbolTable.info(current) match {
+          symbolIndex.lookup(current) match {
             case Some(symbolInformation: SymbolInformation) =>
               Logger.trace(symbolInformationString(symbolInformation))
-              val elements = symbolElements(symbolInformation, ignore, symbolTable, typeIndex, definitionIndex)
+              val elements = symbolElements(symbolInformation, symbolIndex, typeIndex, definitionIndex)
               // Traverse breadth-first so that we process a full symbol before moving onto the next.
               val nextSymbols = tail ++ symbolReferences(symbolInformation)
               val nextSeen    = seen + current
               loop(nextSymbols, nextSeen, elements ++: acc)
             case None =>
               Logger.warn(s"Missing symbol: $current")
-              loop(remaining.init, seen, acc)
+              loop(tail, seen, acc)
           }
         case _ => acc
       }
+    }
 
     loop(Vector(symbol), HashSet.empty, Vector.empty)
   }
@@ -67,15 +65,14 @@ private[scala2plantuml] object SymbolProcessor {
 
   private def symbolElements(
       symbolInformation: SymbolInformation,
-      ignore: String => Boolean,
-      symbolTable: SymbolTable,
+      symbolIndex: SymbolIndex,
       typeIndex: TypeIndex,
       definitionIndex: DefinitionIndex
     ): Seq[ClassDiagramElement] =
     symbolInformation.signature match {
       case Signature.Empty         => Seq.empty
-      case clazz: ClassSignature   => classElement(symbolInformation, clazz, ignore, symbolTable, typeIndex)
-      case method: MethodSignature => methodElements(symbolInformation, method, symbolTable, definitionIndex)
+      case clazz: ClassSignature   => classElement(symbolInformation, clazz, symbolIndex, typeIndex)
+      case method: MethodSignature => methodElements(symbolInformation, method, symbolIndex, definitionIndex)
       case _: TypeSignature        => Seq.empty // We can't do much with this because we don't know the aggregator.
       case _: ValueSignature       => Seq.empty // Same here.
     }
@@ -83,19 +80,18 @@ private[scala2plantuml] object SymbolProcessor {
   private def classElement(
       symbolInformation: SymbolInformation,
       clazz: ClassSignature,
-      ignore: String => Boolean,
-      symbolTable: SymbolTable,
+      symbolIndex: SymbolIndex,
       typeIndex: TypeIndex
     ): Seq[ClassDiagramElement] = {
     import symbolInformation.{displayName, symbol}
     val parentSymbols  = clazz.parents.flatMap(typeSymbols)
-    val typeParameters = optionalScopeTypeParameters(clazz.typeParameters, symbolTable)
+    val typeParameters = optionalScopeTypeParameters(clazz.typeParameters, symbolIndex)
     val element =
       if (isTrait(symbolInformation))
         Interface(displayName, symbol, parentSymbols, typeParameters)
-      else if (isAnnotation(symbolInformation, ignore, typeIndex))
+      else if (isAnnotation(symbolInformation, typeIndex))
         UMLAnnotation(displayName, symbol, isObject(symbolInformation), parentSymbols, typeParameters)
-      else if (isEnum(symbolInformation, ignore, typeIndex))
+      else if (isEnum(symbolInformation, typeIndex))
         Enum(displayName, symbol, isObject(symbolInformation), parentSymbols, typeParameters)
       else
         Class(
@@ -107,14 +103,14 @@ private[scala2plantuml] object SymbolProcessor {
           typeParameters
         )
     val aggregator                = aggregatorSymbol(symbolInformation)
-    val typeParameterAggregations = optionalScopeAggregations(aggregator, clazz.typeParameters, symbolTable)
+    val typeParameterAggregations = optionalScopeAggregations(aggregator, clazz.typeParameters, symbolIndex)
     element +: typeParameterAggregations
   }
 
   private def methodElements(
       symbolInformation: SymbolInformation,
       method: MethodSignature,
-      symbolTable: SymbolTable,
+      symbolIndex: SymbolIndex,
       definitionIndex: DefinitionIndex
     ): Seq[ClassDiagramElement] = {
     import symbolInformation.{displayName, symbol}
@@ -122,10 +118,10 @@ private[scala2plantuml] object SymbolProcessor {
     val aggregator = aggregatorSymbol(symbolInformation)
     if (isField(symbolInformation)) {
       val element                = Field(displayName, symbol, visibility, isAbstract(symbolInformation))
-      val returnTypeAggregations = typeAggregations(aggregator, method.returnType, symbolTable)
+      val returnTypeAggregations = typeAggregations(aggregator, method.returnType, symbolIndex)
       element +: returnTypeAggregations
     } else {
-      val typeParameters = optionalScopeTypeParameters(method.typeParameters, symbolTable)
+      val typeParameters = optionalScopeTypeParameters(method.typeParameters, symbolIndex)
       val element = Method(
         displayName,
         symbol,
@@ -135,9 +131,9 @@ private[scala2plantuml] object SymbolProcessor {
         isAbstract(symbolInformation),
         typeParameters
       )
-      val typeParameterAggregations = optionalScopeAggregations(aggregator, method.typeParameters, symbolTable)
-      val parameterAggregations     = method.parameterLists.flatMap(scopeAggregations(aggregator, _, symbolTable))
-      val returnTypeAggregations    = typeAggregations(aggregator, method.returnType, symbolTable)
+      val typeParameterAggregations = optionalScopeAggregations(aggregator, method.typeParameters, symbolIndex)
+      val parameterAggregations     = method.parameterLists.flatMap(scopeAggregations(aggregator, _, symbolIndex))
+      val returnTypeAggregations    = typeAggregations(aggregator, method.returnType, symbolIndex)
       element +: (typeParameterAggregations ++ parameterAggregations ++ returnTypeAggregations)
     }
   }
@@ -222,11 +218,11 @@ private[scala2plantuml] object SymbolProcessor {
       case StructuralType(tpe, _)            => typeSymbols(tpe)
     }
 
-  private def optionalScopeTypeParameters(maybeScope: Option[Scope], symbolTable: SymbolTable): Seq[TypeParameter] =
+  private def optionalScopeTypeParameters(maybeScope: Option[Scope], symbolIndex: SymbolIndex): Seq[TypeParameter] =
     // TODO: What to do about hardlinks?
     maybeScope.map {
       _.symlinks
-        .flatMap(symbolTable.info)
+        .flatMap(symbolIndex.lookup)
         .map(info => (info, info.signature))
         .collect {
           case (info, typ: TypeSignature) => TypeParameter(info.symbol, typeSymbols(typ.upperBound))
@@ -242,22 +238,18 @@ private[scala2plantuml] object SymbolProcessor {
   private def optionalScopeAggregations(
       aggregator: String,
       maybeScope: Option[Scope],
-      symbolTable: SymbolTable
+      symbolIndex: SymbolIndex
     ): Seq[Aggregation] =
-    maybeScope.map(scopeAggregations(aggregator, _, symbolTable)).getOrElse(Seq.empty)
+    maybeScope.map(scopeAggregations(aggregator, _, symbolIndex)).getOrElse(Seq.empty)
 
-  private def scopeAggregations(
-      aggregator: String,
-      scope: Scope,
-      symbolTable: SymbolTable
-    ): Seq[Aggregation] =
+  private def scopeAggregations(aggregator: String, scope: Scope, symbolIndex: SymbolIndex): Seq[Aggregation] =
     // TODO: What to do about hardlinks?
     scope.symlinks
-      .flatMap(symbolTable.info)
+      .flatMap(symbolIndex.lookup)
       .flatMap { symbolInformation =>
         symbolInformation.signature match {
-          case typ: TypeSignature    => typeSignatureAggregations(aggregator, typ, symbolTable)
-          case value: ValueSignature => typeAggregations(aggregator, value.tpe, symbolTable)
+          case typ: TypeSignature    => typeSignatureAggregations(aggregator, typ, symbolIndex)
+          case value: ValueSignature => typeAggregations(aggregator, value.tpe, symbolIndex)
           case _                     => Seq.empty
         }
       }
@@ -265,19 +257,21 @@ private[scala2plantuml] object SymbolProcessor {
   private def typeSignatureAggregations(
       aggregator: String,
       typ: TypeSignature,
-      symbolTable: SymbolTable
+      symbolIndex: SymbolIndex
     ): Seq[Aggregation] =
-    optionalScopeAggregations(aggregator, typ.typeParameters, symbolTable) ++
-      typeAggregations(aggregator, typ.lowerBound, symbolTable) ++
-      typeAggregations(aggregator, typ.upperBound, symbolTable)
+    optionalScopeAggregations(aggregator, typ.typeParameters, symbolIndex) ++
+      typeAggregations(aggregator, typ.lowerBound, symbolIndex) ++
+      typeAggregations(aggregator, typ.upperBound, symbolIndex)
 
-  private def typeAggregations(aggregator: String, typ: Type, symbolTable: SymbolTable): Seq[Aggregation] =
+  private def typeAggregations(aggregator: String, typ: Type, symbolIndex: SymbolIndex): Seq[Aggregation] =
     typeSymbols(typ).filterNot { symbol =>
-      symbol == aggregator || TerminalTypes.contains(symbol) || nonClassSymbol(symbol, symbolTable)
+      symbol == aggregator ||
+        TerminalTypes.contains(symbol) ||
+        nonClassSymbol(symbol, symbolIndex)
     }.map(Aggregation(aggregator, _))
 
-  private def nonClassSymbol(symbol: String, symbolTable: SymbolTable): Boolean =
-    symbolTable.info(symbol).exists { symbolInformation =>
+  private def nonClassSymbol(symbol: String, symbolIndex: SymbolIndex): Boolean =
+    symbol.isLocal || symbolIndex.lookup(symbol).exists { symbolInformation =>
       symbolInformation.signature match {
         case _: ClassSignature => false
         case _                 => true
@@ -297,24 +291,15 @@ private[scala2plantuml] object SymbolProcessor {
       case PublicAccess()                                  => Visibility.Public
     }
 
-  private def isAnnotation(
-      symbolInformation: SymbolInformation,
-      ignore: String => Boolean,
-      typeIndex: TypeIndex
-    ): Boolean =
-    subTypeOf(symbolInformation, "scala/annotation/Annotation#", ignore, typeIndex)
+  private def isAnnotation(symbolInformation: SymbolInformation, typeIndex: TypeIndex): Boolean =
+    subTypeOf(symbolInformation, "scala/annotation/Annotation#", typeIndex)
 
-  private def isEnum(symbolInformation: SymbolInformation, ignore: String => Boolean, typeIndex: TypeIndex): Boolean =
-    subTypeOf(symbolInformation, "scala/Enumeration#", ignore, typeIndex) ||
-      subTypeOf(symbolInformation, "java/lang/Enum#", ignore, typeIndex)
+  private def isEnum(symbolInformation: SymbolInformation, typeIndex: TypeIndex): Boolean =
+    subTypeOf(symbolInformation, "scala/Enumeration#", typeIndex) ||
+      subTypeOf(symbolInformation, "java/lang/Enum#", typeIndex)
 
-  private def subTypeOf(
-      symbolInformation: SymbolInformation,
-      parent: String,
-      ignore: String => Boolean,
-      typeIndex: TypeIndex
-    ): Boolean = {
-    val hierarchy = typeIndex.hierarchy(symbolInformation, ignore)
+  private def subTypeOf(symbolInformation: SymbolInformation, parent: String, typeIndex: TypeIndex): Boolean = {
+    val hierarchy = typeIndex.hierarchy(symbolInformation)
     hierarchy.subTypeOf(parent)
   }
 
