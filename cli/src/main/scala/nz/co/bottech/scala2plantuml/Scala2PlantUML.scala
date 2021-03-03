@@ -11,6 +11,13 @@ import java.nio.file.Files
 
 object Scala2PlantUML extends App {
 
+  private val mainThread = Thread.currentThread()
+
+  Runtime.getRuntime.addShutdownHook(new Thread() {
+
+    override def run(): Unit = mainThread.interrupt()
+  })
+
   private val builder = OParser.builder[Config]
 
   private val parser = {

@@ -84,7 +84,7 @@ private[scala2plantuml] object SymbolProcessor {
       typeIndex: TypeIndex
     ): Seq[ClassDiagramElement] = {
     import symbolInformation.{displayName, symbol}
-    val parentSymbols  = clazz.parents.flatMap(typeSymbols)
+    val parentSymbols  = clazz.parents.flatMap(typeSymbols(_, includeArguments = false))
     val typeParameters = optionalScopeTypeParameters(clazz.typeParameters, symbolIndex)
     val element =
       if (isTrait(symbolInformation))
@@ -104,7 +104,8 @@ private[scala2plantuml] object SymbolProcessor {
         )
     val aggregator                = aggregatorSymbol(symbolInformation)
     val typeParameterAggregations = optionalScopeAggregations(aggregator, clazz.typeParameters, symbolIndex)
-    element +: typeParameterAggregations
+    val parentAggregations        = clazz.parents.flatMap(typeArgumentAggregations(aggregator, _, symbolIndex))
+    element +: typeParameterAggregations ++: parentAggregations
   }
 
   private def methodElements(
@@ -134,7 +135,7 @@ private[scala2plantuml] object SymbolProcessor {
       val typeParameterAggregations = optionalScopeAggregations(aggregator, method.typeParameters, symbolIndex)
       val parameterAggregations     = method.parameterLists.flatMap(scopeAggregations(aggregator, _, symbolIndex))
       val returnTypeAggregations    = typeAggregations(aggregator, method.returnType, symbolIndex)
-      element +: (typeParameterAggregations ++ parameterAggregations ++ returnTypeAggregations)
+      element +: typeParameterAggregations ++: parameterAggregations ++: returnTypeAggregations
     }
   }
 
@@ -197,25 +198,50 @@ private[scala2plantuml] object SymbolProcessor {
       case StructuralType(tpe, declarations) => typeReferences(tpe) ++ optionalScopeReferences(declarations)
     }
 
-  private def typeSymbols(typ: Type): Seq[String] =
+  private def typeSymbols(typ: Type, includeArguments: Boolean): Seq[String] =
     typ match {
       case Type.Empty       => Seq.empty
-      case WithType(types)  => types.flatMap(typeSymbols)
-      case UnionType(types) => types.flatMap(typeSymbols)
+      case WithType(types)  => types.flatMap(typeSymbols(_, includeArguments))
+      case UnionType(types) => types.flatMap(typeSymbols(_, includeArguments))
       case _: ConstantType  =>
         // TODO: Do something better with constant types.
         Seq.empty
-      case RepeatedType(tpe)                 => typeSymbols(tpe)
-      case ExistentialType(tpe, _)           => typeSymbols(tpe)
-      case TypeRef(_, symbol, typeArguments) => symbol +: typeArguments.flatMap(typeSymbols)
-      case SingleType(_, symbol)             => Seq(symbol)
-      case UniversalType(_, tpe)             => typeSymbols(tpe)
-      case IntersectionType(types)           => types.flatMap(typeSymbols)
-      case ByNameType(tpe)                   => typeSymbols(tpe)
-      case ThisType(symbol)                  => Seq(symbol)
-      case AnnotatedType(_, tpe)             => typeSymbols(tpe)
-      case SuperType(_, symbol)              => Seq(symbol)
-      case StructuralType(tpe, _)            => typeSymbols(tpe)
+      case RepeatedType(tpe)       => typeSymbols(tpe, includeArguments)
+      case ExistentialType(tpe, _) => typeSymbols(tpe, includeArguments)
+      case TypeRef(_, symbol, typeArguments) if includeArguments =>
+        symbol +: typeArguments.flatMap(typeSymbols(_, includeArguments))
+      case TypeRef(_, symbol, _)   => Seq(symbol)
+      case SingleType(_, symbol)   => Seq(symbol)
+      case UniversalType(_, tpe)   => typeSymbols(tpe, includeArguments)
+      case IntersectionType(types) => types.flatMap(typeSymbols(_, includeArguments))
+      case ByNameType(tpe)         => typeSymbols(tpe, includeArguments)
+      case ThisType(symbol)        => Seq(symbol)
+      case AnnotatedType(_, tpe)   => typeSymbols(tpe, includeArguments)
+      case SuperType(_, symbol)    => Seq(symbol)
+      case StructuralType(tpe, _)  => typeSymbols(tpe, includeArguments)
+    }
+
+  private def typeArgumentSymbols(typ: Type, includeOwnSymbol: Boolean): Seq[String] =
+    typ match {
+      case Type.Empty       => Seq.empty
+      case WithType(types)  => types.flatMap(typeArgumentSymbols(_, includeOwnSymbol))
+      case UnionType(types) => types.flatMap(typeArgumentSymbols(_, includeOwnSymbol))
+      case _: ConstantType  =>
+        // TODO: Do something better with constant types.
+        Seq.empty
+      case RepeatedType(tpe)       => typeArgumentSymbols(tpe, includeOwnSymbol)
+      case ExistentialType(tpe, _) => typeArgumentSymbols(tpe, includeOwnSymbol)
+      case TypeRef(_, symbol, typeArguments) =>
+        if (includeOwnSymbol) symbol +: typeArguments.flatMap(typeArgumentSymbols(_, includeOwnSymbol = true))
+        else typeArguments.flatMap(typeArgumentSymbols(_, includeOwnSymbol = true))
+      case SingleType(_, symbol)   => if (includeOwnSymbol) Seq(symbol) else Seq.empty
+      case UniversalType(_, tpe)   => typeArgumentSymbols(tpe, includeOwnSymbol)
+      case IntersectionType(types) => types.flatMap(typeArgumentSymbols(_, includeOwnSymbol))
+      case ByNameType(tpe)         => typeArgumentSymbols(tpe, includeOwnSymbol)
+      case ThisType(symbol)        => if (includeOwnSymbol) Seq(symbol) else Seq.empty
+      case AnnotatedType(_, tpe)   => typeArgumentSymbols(tpe, includeOwnSymbol)
+      case SuperType(_, symbol)    => if (includeOwnSymbol) Seq(symbol) else Seq.empty
+      case StructuralType(tpe, _)  => typeArgumentSymbols(tpe, includeOwnSymbol)
     }
 
   private def optionalScopeTypeParameters(maybeScope: Option[Scope], symbolIndex: SymbolIndex): Seq[TypeParameter] =
@@ -225,7 +251,8 @@ private[scala2plantuml] object SymbolProcessor {
         .flatMap(symbolIndex.lookup)
         .map(info => (info, info.signature))
         .collect {
-          case (info, typ: TypeSignature) => TypeParameter(info.symbol, typeSymbols(typ.upperBound))
+          case (info, typ: TypeSignature) =>
+            TypeParameter(info.symbol, typeSymbols(typ.upperBound, includeArguments = false))
         }
     }.getOrElse(Seq.empty)
 
@@ -264,10 +291,16 @@ private[scala2plantuml] object SymbolProcessor {
       typeAggregations(aggregator, typ.upperBound, symbolIndex)
 
   private def typeAggregations(aggregator: String, typ: Type, symbolIndex: SymbolIndex): Seq[Aggregation] =
-    typeSymbols(typ).filterNot { symbol =>
+    aggregations(aggregator, typeSymbols(typ, includeArguments = true), symbolIndex)
+
+  private def typeArgumentAggregations(aggregator: String, typ: Type, symbolIndex: SymbolIndex): Seq[Aggregation] =
+    aggregations(aggregator, typeArgumentSymbols(typ, includeOwnSymbol = false), symbolIndex)
+
+  private def aggregations(aggregator: String, aggregates: Seq[String], symbolIndex: SymbolIndex): Seq[Aggregation] =
+    aggregates.filterNot { symbol =>
       symbol == aggregator ||
-        TerminalTypes.contains(symbol) ||
-        nonClassSymbol(symbol, symbolIndex)
+      TerminalTypes.contains(symbol) ||
+      nonClassSymbol(symbol, symbolIndex)
     }.map(Aggregation(aggregator, _))
 
   private def nonClassSymbol(symbol: String, symbolIndex: SymbolIndex): Boolean =
