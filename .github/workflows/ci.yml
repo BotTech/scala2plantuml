@@ -53,13 +53,13 @@ jobs:
         run: sbt ++${{ matrix.scala }} githubWorkflowCheck
 
       - name: Check formatting and style
-        run: sbt ++${{ matrix.scala }} 'scalafmtCheckAll scalastyle'
+        run: sbt ++${{ matrix.scala }} scalafmtCheckAll scalastyle
 
       - name: Check documentation has been generated
         run: sbt ++${{ matrix.scala }} doc/mdoc
 
       - name: Check declared dependencies
-        run: sbt ++${{ matrix.scala }} 'undeclaredCompileDependenciesTest unusedCompileDependenciesTest'
+        run: sbt ++${{ matrix.scala }} undeclaredCompileDependenciesTest unusedCompileDependenciesTest
 
       - name: Check for known vulnerabilities
         run: sbt ++${{ matrix.scala }} dependencyCheckAggregate
@@ -68,7 +68,7 @@ jobs:
         run: sbt ++${{ matrix.scala }} mimaReportBinaryIssues
 
       - name: Build and test
-        run: sbt ++${{ matrix.scala }} 'test scripted'
+        run: sbt ++${{ matrix.scala }} test scripted
 
       - name: Compress target directories
         run: tar cf targets.tar sbt/target target doc-templates/target cli/target core/target project/target
