@@ -6,8 +6,8 @@ import sbt.{Def, _}
 
 object Scala2PlantUMLPlugin extends AutoPlugin {
 
-  override def trigger  = allRequirements
-  override def requires = SemanticdbPlugin
+  override def trigger: PluginTrigger = allRequirements
+  override def requires: Plugins      = SemanticdbPlugin
 
   object autoImport {
     val scala2PlantUML = inputKey[File]("Generates a PlantUML class diagram from a base symbol.")

@@ -220,7 +220,7 @@ object Scala2PlantUML extends App {
           ClassDiagramRenderer.render(elements, Options.Default, writer)
         }.get
       case None =>
-        println(ClassDiagramRenderer.renderString(elements, Options.Default))
+        println(ClassDiagramRenderer.renderString(elements, Options.Default)) // scalastyle:ignore
     }
   }
 

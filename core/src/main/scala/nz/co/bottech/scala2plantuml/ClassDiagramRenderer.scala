@@ -104,20 +104,6 @@ object ClassDiagramRenderer {
 
   def renderSnippet(elements: Seq[ClassDiagramElement], options: Options, writer: Writer): Unit = {
     val elementsWithNames = DiagramModifications(elements, options)
-    def owns(outer: Type, current: ClassDiagramElement): Boolean =
-      current match {
-        case member: Member => outer.owns(member)
-        case _              => false
-      }
-    def nest(current: ClassDiagramElement, previous: Option[ClassDiagramElement], outer: Option[Type]): Boolean =
-      outer match {
-        case Some(out) => owns(out, current)
-        case None =>
-          previous match {
-            case Some(prev: Type) => owns(prev, current)
-            case _                => false
-          }
-      }
 
     @tailrec
     def loop(
@@ -127,14 +113,7 @@ object ClassDiagramRenderer {
       ): Unit =
       remaining match {
         case head +: tail =>
-          val nested = nest(head, previous, outer)
-          if (outer.isEmpty) {
-            if (nested) writer.write(" {")
-          } else if (!nested) writer.write("\n}")
-          if (previous.nonEmpty) writer.write('\n')
-          if (nested) writer.write("  ")
-          val nextOuter = if (nested) outer.orElse(previous).collect({ case typ: Type => typ }) else None
-          writer.write(renderElementStart(head, nextOuter, elementsWithNames.names))
+          val nextOuter = renderElement(head, previous, outer, writer, elementsWithNames.names)
           loop(tail, Some(head), nextOuter)
         case Seq() =>
           if (outer.nonEmpty) writer.write("\n}")
@@ -143,6 +122,44 @@ object ClassDiagramRenderer {
 
     loop(elementsWithNames.elements, None, None)
   }
+
+  private def renderElement(
+      current: ClassDiagramElement,
+      previous: Option[ClassDiagramElement],
+      outer: Option[Type],
+      writer: Writer,
+      names: Map[String, String]
+    ) = {
+    val nested = shouldBeNested(current, previous, outer)
+    if (outer.isEmpty) {
+      if (nested) writer.write(" {")
+    } else if (!nested) writer.write("\n}")
+    if (previous.nonEmpty) writer.write('\n')
+    if (nested) writer.write("  ")
+    val nextOuter = if (nested) outer.orElse(previous).collect({ case typ: Type => typ }) else None
+    writer.write(renderElementStart(current, nextOuter, names))
+    nextOuter
+  }
+
+  private def typeOwnsElement(outer: Type, current: ClassDiagramElement): Boolean =
+    current match {
+      case member: Member => outer.owns(member)
+      case _              => false
+    }
+
+  private def shouldBeNested(
+      current: ClassDiagramElement,
+      previous: Option[ClassDiagramElement],
+      outer: Option[Type]
+    ): Boolean =
+    outer match {
+      case Some(out) => typeOwnsElement(out, current)
+      case None =>
+        previous match {
+          case Some(prev: Type) => typeOwnsElement(prev, current)
+          case _                => false
+        }
+    }
 
   private def writeAsString(f: Writer => Unit): String = {
     val writer = new StringWriter()

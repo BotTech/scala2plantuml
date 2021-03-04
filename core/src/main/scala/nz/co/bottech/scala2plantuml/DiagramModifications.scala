@@ -167,28 +167,34 @@ private[scala2plantuml] object DiagramModifications {
       elementsWithNames.copy(names = newNames)
     }
 
-    def combineCompanionObjects(options: Options): ElementsWithNames =
+    def adjustCompanionObjects(options: Options): ElementsWithNames =
       options.companionObjects match {
-        case Options.CombineAsStatic =>
-          val nonObjectTypeNames = elements.collect {
-            case typ: Type if !typ.isObject => symbolToScalaIdentifier(typ.symbol)
-          }.toSet
-          val newElements = elements.collect {
-            case typ: Type if !typ.isObject                                                     => typ
-            case typ: Type if !nonObjectTypeNames.contains(symbolToScalaIdentifier(typ.symbol)) => typ
-            case member: Member                                                                 => member
-            case aggregation: Aggregation                                                       => aggregation
-          }
-          elementsWithNames.copy(elements = newElements)
-        case Options.SeparateClasses =>
-          val newNames = elements.foldLeft(names) {
-            case (names, typ: Type) if typ.isObject =>
-              val name = names.getOrElse(typ.symbol, typ.displayName)
-              names.updated(typ.symbol, s"$name$$")
-            case (names, _) => names
-          }
-          elementsWithNames.copy(names = newNames)
+        case Options.CombineAsStatic => removeCompanionObjects
+        case Options.SeparateClasses => addObjectDisambiguator
       }
+
+    private def removeCompanionObjects = {
+      val nonObjectTypeNames = elements.collect {
+        case typ: Type if !typ.isObject => symbolToScalaIdentifier(typ.symbol)
+      }.toSet
+      val newElements = elements.collect {
+        case typ: Type if !typ.isObject                                                     => typ
+        case typ: Type if !nonObjectTypeNames.contains(symbolToScalaIdentifier(typ.symbol)) => typ
+        case member: Member                                                                 => member
+        case aggregation: Aggregation                                                       => aggregation
+      }
+      elementsWithNames.copy(elements = newElements)
+    }
+
+    private def addObjectDisambiguator = {
+      val newNames = elements.foldLeft(names) {
+        case (names, typ: Type) if typ.isObject =>
+          val name = names.getOrElse(typ.symbol, typ.displayName)
+          names.updated(typ.symbol, s"$name$$")
+        case (names, _) => names
+      }
+      elementsWithNames.copy(names = newNames)
+    }
 
     def updateConstructors(options: Options): ElementsWithNames =
       options.constructor match {
@@ -234,7 +240,7 @@ private[scala2plantuml] object DiagramModifications {
       .removeDuplicateAggregations
       .addMissingElements(options)
       .calculateNames(options)
-      .combineCompanionObjects(options)
+      .adjustCompanionObjects(options)
       .updateConstructors(options)
       .sort(options)
 }
