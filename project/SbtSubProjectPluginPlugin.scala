@@ -11,25 +11,40 @@ object SbtSubProjectPluginPlugin extends AutoPlugin {
   override def projectSettings: Seq[Def.Setting[_]] =
     List(
       crossScalaVersions := Nil,
-      Compile / classpathConfiguration := Compile,
-      Runtime / classpathConfiguration := Runtime,
-      Test / classpathConfiguration := Test,
-      skip := {
-        val versions =
-          scalaVersion.all(ScopeFilter(inDependencies(ThisProject, transitive = false, includeRoot = false))).value
-        versions.exists { version =>
-          CrossVersion.partialVersion(version) match {
-            case Some((2, n)) if n == 13 => true
-            case _                       => false
-          }
-        }
-      },
-      update := {
-        if (skip.value) dummyUpdateReport
-        else update.value
-      }
+      skip := skipTask.value,
+      update := updateTask.value
     )
 
-  private def dummyUpdateReport =
-    UpdateReport(new File("."), Vector.empty, UpdateStats(-1L, -1L, -1L, cached = false), Map.empty)
+  private def skipTask =
+    Def.task {
+      val versions =
+        scalaVersion.all(ScopeFilter(inDependencies(ThisProject, transitive = false, includeRoot = false))).value
+      versions.exists { version =>
+        CrossVersion.partialVersion(version) match {
+          case Some((2, n)) if n == 13 => true
+          case _                       => false
+        }
+      }
+    }
+
+  //noinspection MutatorLikeMethodIsParameterless
+  private def updateTask =
+    Def.task {
+      if (skip.value) {
+        val configurations = ivyModule.value.configurations
+        dummyUpdateReport(configurations)
+      } else update.value
+    }
+
+  private def dummyUpdateReport(configurations: Vector[Configuration]) =
+    UpdateReport(
+      new File("."),
+      configurations.map(dummyConfigurationReport),
+      UpdateStats(-1L, -1L, -1L, cached = false),
+      Map.empty
+    )
+
+  private def dummyConfigurationReport(configuration: Configuration) =
+    ConfigurationReport(configuration, Vector.empty, Vector.empty)
+
 }
