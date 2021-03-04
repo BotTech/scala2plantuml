@@ -10,6 +10,7 @@ import scala.util.Using
 
 object Scala2PlantUML {
 
+  @SuppressWarnings(Array("org.wartremover.warts.TryPartial"))
   def apply(config: Config, projects: Seq[String], sourceRoots: Seq[String], logger: Logger): File = {
     validateConfig(config)
     configureLogging(config, logger)
@@ -27,6 +28,7 @@ object Scala2PlantUML {
     file
   }
 
+  @SuppressWarnings(Array("org.wartremover.warts.Throw"))
   private def validateConfig(config: Config): Unit =
     if (config.ignore(config.symbol))
       throw new IllegalArgumentException("Symbol must match include patterns and not match exclude patterns.")

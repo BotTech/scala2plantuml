@@ -22,6 +22,7 @@ object Scala2PlantUMLPlugin extends AutoPlugin {
     scala2PlantUML / fullClasspath += Attributed.blank(semanticdbTargetRoot.value)
   )
 
+  @SuppressWarnings(Array("org.wartremover.warts.Any"))
   override def projectSettings: Seq[Def.Setting[_]] =
     inConfig(Compile)(baseSettings) ++
       inConfig(Test)(baseSettings) ++
@@ -32,8 +33,10 @@ object Scala2PlantUMLPlugin extends AutoPlugin {
         }
       )
 
-  def scala2PlantUMLTask =
-    Def.inputTask {
+  // FIXME: Find out where the Any is coming from.
+  @SuppressWarnings(Array("org.wartremover.warts.Any"))
+  def scala2PlantUMLTask: Def.Initialize[InputTask[File]] =
+    Def.inputTask[File] {
       val config        = Scala2PlantUMLParser().parsed
       val targetDir     = target.value
       val classpath     = (scala2PlantUML / fullClasspath).value
@@ -57,6 +60,8 @@ object Scala2PlantUMLPlugin extends AutoPlugin {
     }
   }
 
+  // FIXME: Find out where the Any is coming from.
+  @SuppressWarnings(Array("org.wartremover.warts.Any"))
   private def allSourceDirectories =
     Def.settingDyn {
       val conf = configuration.value

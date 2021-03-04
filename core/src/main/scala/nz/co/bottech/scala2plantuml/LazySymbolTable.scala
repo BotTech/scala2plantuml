@@ -27,6 +27,6 @@ private[scala2plantuml] class LazySymbolTable(loader: SemanticdbLoader) extends 
         errors.foreach(error => logger.debug(s"- $error"))
       case Right(textDocuments) =>
         val symbols = textDocuments.flatMap(_.symbols).map(info => info.symbol -> info)
-        cache ++= symbols
+        val _ = cache ++= symbols
     }
 }

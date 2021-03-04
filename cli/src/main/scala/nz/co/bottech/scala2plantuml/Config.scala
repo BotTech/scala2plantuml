@@ -4,6 +4,7 @@ import java.io.File
 import java.net.URL
 
 // TODO: Refactor the common code between here and the sbt plugin.
+@SuppressWarnings(Array("org.wartremover.warts.DefaultArguments"))
 final case class Config(
     symbol: String = "",
     includes: Set[String] = Set(),

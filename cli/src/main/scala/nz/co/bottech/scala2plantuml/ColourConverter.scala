@@ -25,5 +25,6 @@ private[scala2plantuml] object ColourConverter {
 
   // TODO: How else can we programmatically control this?
   @volatile
+  @SuppressWarnings(Array("org.wartremover.warts.Var"))
   var enabled: Boolean = true
 }

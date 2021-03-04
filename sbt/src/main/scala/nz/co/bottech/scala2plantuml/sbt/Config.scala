@@ -9,9 +9,9 @@ import java.net.URL
 final case class Config(
     symbol: String,
     outputFile: File,
-    includes: Set[String] = Set(),
-    excludes: Set[String] = Set(ScalaStdLibPattern, JavaStdLibPattern),
-    urls: Vector[URL] = Vector.empty) {
+    includes: Set[String],
+    excludes: Set[String],
+    urls: Vector[URL]) {
 
   def replaceOutputFile(file: String): Config =
     replaceOutputFile(new File(file))
@@ -56,4 +56,10 @@ final case class Config(
       s"META-INF/semanticdb/$suffix"
     }
   }
+}
+
+object Config {
+
+  def apply(symbol: String, outputFile: File): Config =
+    Config(symbol, outputFile, Set.empty, Set(ScalaStdLibPattern, JavaStdLibPattern), Vector.empty)
 }

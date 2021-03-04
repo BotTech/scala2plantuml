@@ -1,5 +1,6 @@
 package nz.co.bottech.scala2plantuml
 
+import nz.co.bottech.scala2plantuml.AdditionalSymbolInformation._
 import nz.co.bottech.scala2plantuml.ClassDiagramElement.{Annotation => UMLAnnotation, Type => _, _}
 import org.slf4j.LoggerFactory
 
@@ -29,8 +30,7 @@ private[scala2plantuml] object SymbolProcessor {
         seen: HashSet[String],
         acc: Vector[ClassDiagramElement]
       ): Vector[ClassDiagramElement] = {
-      if (Thread.currentThread().isInterrupted)
-        throw new InterruptedException("Interrupted while processing symbol.")
+      checkIfInterrupted()
       remaining match {
         case current +: tail if skip(current, seen) =>
           loop(tail, seen, acc)
@@ -53,6 +53,11 @@ private[scala2plantuml] object SymbolProcessor {
 
     loop(Vector(symbol), HashSet.empty, Vector.empty)
   }
+
+  @SuppressWarnings(Array("org.wartremover.warts.Throw"))
+  private def checkIfInterrupted(): Unit =
+    if (Thread.currentThread().isInterrupted)
+      throw new InterruptedException("Interrupted while processing symbol.")
 
   private def symbolInformationString(symbol: SymbolInformation): String =
     s"""SymbolInformation(
@@ -86,7 +91,7 @@ private[scala2plantuml] object SymbolProcessor {
     import symbolInformation.{displayName, symbol}
     val parentSymbols  = clazz.parents.flatMap(typeSymbols(_, includeArguments = false))
     val typeParameters = optionalScopeTypeParameters(clazz.typeParameters, symbolIndex)
-    val element =
+    val element: ClassDiagramElement.Type =
       if (isTrait(symbolInformation))
         Interface(displayName, symbol, parentSymbols, typeParameters)
       else if (isAnnotation(symbolInformation, typeIndex))
@@ -118,8 +123,9 @@ private[scala2plantuml] object SymbolProcessor {
     val visibility = symbolVisibility(symbolInformation)
     val aggregator = aggregatorSymbol(symbolInformation)
     if (isField(symbolInformation)) {
-      val element                = Field(displayName, symbol, visibility, isAbstract(symbolInformation))
-      val returnTypeAggregations = typeAggregations(aggregator, method.returnType, symbolIndex)
+      val element = Field(displayName, symbol, visibility, isAbstract(symbolInformation))
+      val returnTypeAggregations: Seq[ClassDiagramElement] =
+        typeAggregations(aggregator, method.returnType, symbolIndex)
       element +: returnTypeAggregations
     } else {
       val typeParameters = optionalScopeTypeParameters(method.typeParameters, symbolIndex)
@@ -134,7 +140,8 @@ private[scala2plantuml] object SymbolProcessor {
       )
       val typeParameterAggregations = optionalScopeAggregations(aggregator, method.typeParameters, symbolIndex)
       val parameterAggregations     = method.parameterLists.flatMap(scopeAggregations(aggregator, _, symbolIndex))
-      val returnTypeAggregations    = typeAggregations(aggregator, method.returnType, symbolIndex)
+      val returnTypeAggregations: Seq[ClassDiagramElement] =
+        typeAggregations(aggregator, method.returnType, symbolIndex)
       element +: typeParameterAggregations ++: parameterAggregations ++: returnTypeAggregations
     }
   }
@@ -173,6 +180,7 @@ private[scala2plantuml] object SymbolProcessor {
   private def scopeReferences(scope: Scope): Seq[String] =
     scope.symlinks ++ scope.hardlinks.flatMap(symbolReferences)
 
+  // scalastyle:off cyclomatic.complexity
   private def typeReferences(typ: Type): Seq[String] =
     typ match {
       case Type.Empty       => Seq.empty
@@ -197,7 +205,9 @@ private[scala2plantuml] object SymbolProcessor {
       case SuperType(_, symbol)              => Seq(symbol)
       case StructuralType(tpe, declarations) => typeReferences(tpe) ++ optionalScopeReferences(declarations)
     }
+  // scalastyle:on cyclomatic.complexity
 
+  // scalastyle:off cyclomatic.complexity
   private def typeSymbols(typ: Type, includeArguments: Boolean): Seq[String] =
     typ match {
       case Type.Empty       => Seq.empty
@@ -220,7 +230,9 @@ private[scala2plantuml] object SymbolProcessor {
       case SuperType(_, symbol)    => Seq(symbol)
       case StructuralType(tpe, _)  => typeSymbols(tpe, includeArguments)
     }
+  // scalastyle:on cyclomatic.complexity
 
+  // scalastyle:off cyclomatic.complexity
   private def typeArgumentSymbols(typ: Type, includeOwnSymbol: Boolean): Seq[String] =
     typ match {
       case Type.Empty       => Seq.empty
@@ -243,6 +255,7 @@ private[scala2plantuml] object SymbolProcessor {
       case SuperType(_, symbol)    => if (includeOwnSymbol) Seq(symbol) else Seq.empty
       case StructuralType(tpe, _)  => typeArgumentSymbols(tpe, includeOwnSymbol)
     }
+  // scalastyle:on cyclomatic.complexity
 
   private def optionalScopeTypeParameters(maybeScope: Option[Scope], symbolIndex: SymbolIndex): Seq[TypeParameter] =
     // TODO: What to do about hardlinks?
@@ -311,6 +324,7 @@ private[scala2plantuml] object SymbolProcessor {
       }
     }
 
+  // scalastyle:off cyclomatic.complexity
   private def symbolVisibility(symbolInformation: SymbolInformation): Visibility =
     symbolInformation.access match {
       case Access.Empty                                    => Visibility.Public
@@ -323,45 +337,11 @@ private[scala2plantuml] object SymbolProcessor {
       case ProtectedWithinAccess(_)                        => Visibility.Protected
       case PublicAccess()                                  => Visibility.Public
     }
-
-  private def isAnnotation(symbolInformation: SymbolInformation, typeIndex: TypeIndex): Boolean =
-    subTypeOf(symbolInformation, "scala/annotation/Annotation#", typeIndex)
-
-  private def isEnum(symbolInformation: SymbolInformation, typeIndex: TypeIndex): Boolean =
-    subTypeOf(symbolInformation, "scala/Enumeration#", typeIndex) ||
-      subTypeOf(symbolInformation, "java/lang/Enum#", typeIndex)
-
-  private def subTypeOf(symbolInformation: SymbolInformation, parent: String, typeIndex: TypeIndex): Boolean = {
-    val hierarchy = typeIndex.hierarchy(symbolInformation)
-    hierarchy.subTypeOf(parent)
-  }
+  // scalastyle:on cyclomatic.complexity
 
   // TODO: This should also take into account the synthetics on the text document
   //  although currently they don't seem to be very useful.
   private def isSynthetic(symbol: String, definitionIndex: DefinitionIndex): Boolean =
     definitionIndex.occurrence(symbol).isEmpty
 
-  private def isObject(symbolInformation: SymbolInformation): Boolean =
-    symbolInformation.kind == SymbolInformation.Kind.OBJECT
-
-  private def isTrait(symbolInformation: SymbolInformation): Boolean =
-    symbolInformation.kind == SymbolInformation.Kind.TRAIT
-
-  private def isConstructor(symbolInformation: SymbolInformation): Boolean =
-    symbolInformation.kind == SymbolInformation.Kind.CONSTRUCTOR
-
-  private def isAbstract(symbolInformation: SymbolInformation): Boolean =
-    hasProperty(symbolInformation, SymbolInformation.Property.ABSTRACT)
-
-  private def isField(symbolInformation: SymbolInformation): Boolean =
-    isVal(symbolInformation) || isVar(symbolInformation)
-
-  private def isVal(symbolInformation: SymbolInformation): Boolean =
-    hasProperty(symbolInformation, SymbolInformation.Property.VAL)
-
-  private def isVar(symbolInformation: SymbolInformation): Boolean =
-    hasProperty(symbolInformation, SymbolInformation.Property.VAR)
-
-  private def hasProperty(symbolInformation: SymbolInformation, property: SymbolInformation.Property): Boolean =
-    (symbolInformation.properties & property.value) == property.value
 }

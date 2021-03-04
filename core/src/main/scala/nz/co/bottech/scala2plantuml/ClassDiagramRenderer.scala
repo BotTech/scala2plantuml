@@ -19,6 +19,7 @@ object ClassDiagramRenderer {
       sorting: SortingOption,
       syntheticMethods: SyntheticMethodsOption)
 
+  @SuppressWarnings(Array("org.wartremover.warts.DefaultArguments"))
   object Options {
 
     // Often used for constructors and other "constructors" like apply.
@@ -63,6 +64,7 @@ object ClassDiagramRenderer {
 
     sealed trait ConstructorOption
     case object HideConstructors extends ConstructorOption
+
 
     final case class ShowConstructors(
         stereotype: Option[String] = None,

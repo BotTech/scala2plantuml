@@ -9,6 +9,7 @@ import java.io.{File, FileWriter}
 import java.net.URLClassLoader
 import scala.util.Using
 
+@SuppressWarnings(Array("org.wartremover.warts.TryPartial"))
 object Scala2PlantUML extends App {
 
   private val mainThread = Thread.currentThread()
@@ -217,7 +218,7 @@ object Scala2PlantUML extends App {
         Option(file.getParentFile).foreach(_.mkdirs())
         Using(new FileWriter(file)) { writer =>
           ClassDiagramRenderer.render(elements, Options.Default, writer)
-        }
+        }.get
       case None =>
         println(ClassDiagramRenderer.renderString(elements, Options.Default))
     }
@@ -227,6 +228,7 @@ object Scala2PlantUML extends App {
     if (config.ignore(config.symbol)) Left("Symbol must match include patterns and not match exclude patterns.")
     else Right(())
 
+  @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
   private def configureLogging(config: Config): Unit = {
     ColourConverter.enabled = config.logInColour
     val root = LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME).asInstanceOf[Logger]
