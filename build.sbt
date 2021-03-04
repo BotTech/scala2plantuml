@@ -22,7 +22,6 @@ addCommandAlias(
     "+undeclaredCompileDependenciesTest",
     "+unusedCompileDependenciesTest",
     "+dependencyCheckAggregate",
-    "+mimaReportBinaryIssues",
     "+test",
     "scripted"
   ).mkString("; ")
@@ -56,7 +55,6 @@ inThisBuild(
         name = Some("Check declared dependencies")
       ),
       WorkflowStep.Sbt(List("dependencyCheckAggregate"), name = Some("Check for known vulnerabilities")),
-      WorkflowStep.Sbt(List("mimaReportBinaryIssues"), name = Some("Check binary compatibility")),
       WorkflowStep.Sbt(List("test", "scripted"), name = Some("Build and test"))
     ),
     githubWorkflowPublish := List(
