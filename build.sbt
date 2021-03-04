@@ -70,7 +70,8 @@ inThisBuild(
     ),
     githubWorkflowPublishTargetBranches := List(RefPredicate.StartsWith(Ref.Tag("v"))),
     githubWorkflowTargetTags ++= Seq("v*"),
-    versionPolicyIntention := Compatibility.BinaryAndSourceCompatible
+    versionPolicyIntention := Compatibility.BinaryAndSourceCompatible,
+    versionScheme := Some("semver-spec")
   )
 )
 
