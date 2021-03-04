@@ -1,11 +1,13 @@
+enablePlugins(GitVersioning)
+
 ThisBuild / organization := "nz.co.bottech"
 ThisBuild / organizationName := "BotTech"
 ThisBuild / homepage := Some(url("https://github.com/BotTech/scala2plantuml"))
-ThisBuild / version := "0.1"
 
 name := "scala2plantuml"
 crossScalaVersions := Nil
 publish / skip := true
+git.useGitDescribe := true
 
 aggregateProjects(cli, core, sbtPluginProject)
 
