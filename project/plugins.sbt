@@ -1,3 +1,4 @@
+addSbtPlugin("ch.epfl.scala"             % "sbt-eviction-rules"        % "1.0.0-RC1")
 addSbtPlugin("ch.epfl.scala"             % "sbt-version-policy"        % "1.0.0-RC5")
 addSbtPlugin("com.codecommit"            % "sbt-github-actions"        % "0.10.1")
 addSbtPlugin("com.eed3si9n"              % "sbt-buildinfo"             % "0.9.0")

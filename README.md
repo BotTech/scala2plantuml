@@ -33,7 +33,7 @@ For most use cases you should add Scala2PlantUML as a global plugin since your b
 Create `~/.sbt/1.0/plugins/scala2PlantUML.sbt` containing:
 
 ```text
-addSbtPlugin("nz.co.bottech" % "sbt-scala2plantuml" % "9f5ed000bd2bc569a7b138dfa02eb575c79cf1f1-SNAPSHOT")
+addSbtPlugin("nz.co.bottech" % "sbt-scala2plantuml" % "0.0.0+67-ed9e4cf5+20210305-1051-SNAPSHOT")
 ```
 
 ## CLI
@@ -49,7 +49,7 @@ cs install --channel https://git.io/Jqv1i scala2plantuml
 ### Usage
 
 ```text
-Scala2PlantUML version 9f5ed000bd2bc569a7b138dfa02eb575c79cf1f1-SNAPSHOT
+Scala2PlantUML version 0.0.0+67-ed9e4cf5+20210305-1051-SNAPSHOT
 Usage: scala2plantuml [options] symbol
 
 Scala2PlantUML generates PlantUML Class Diagrams from Scala SemanticDB files.

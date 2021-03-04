@@ -19,6 +19,7 @@ addCommandAlias(
     "+versionPolicyCheck",
     "+githubWorkflowCheck",
     "mdocCheck",
+    "+evictionCheck",
     "+undeclaredCompileDependenciesTest",
     "+unusedCompileDependenciesTest",
     "+dependencyCheckAggregate",
@@ -51,10 +52,14 @@ inThisBuild(
       WorkflowStep.Sbt(List("versionPolicyCheck"), name = Some("Check version adheres to the policy")),
       WorkflowStep.Sbt(List("mdocCheck"), name = Some("Check documentation has been generated")),
       WorkflowStep.Sbt(
-        List("undeclaredCompileDependenciesTest", "unusedCompileDependenciesTest"),
-        name = Some("Check declared dependencies")
+        List(
+          "evictionCheck",
+          "undeclaredCompileDependenciesTest",
+          "unusedCompileDependenciesTest",
+          "dependencyCheckAggregate"
+        ),
+        name = Some("Check dependencies")
       ),
-      WorkflowStep.Sbt(List("dependencyCheckAggregate"), name = Some("Check for known vulnerabilities")),
       WorkflowStep.Sbt(List("test", "scripted"), name = Some("Build and test"))
     ),
     githubWorkflowPublish := List(
@@ -179,6 +184,11 @@ lazy val docs = (project in file("doc-templates"))
   .enablePlugins(MdocPlugin)
   .settings(metaProjectSettings)
   .settings(
+    libraryDependencies := libraryDependencies.value.map { module =>
+      if (module.name.startsWith("mdoc"))
+        module.exclude("io.undertow", "undertow-core").exclude("org.jboss.xnio", "xnio-nio")
+      else module
+    },
     mdocOut := (ThisBuild / baseDirectory).value,
     mdocVariables := Map(
       "VERSION" -> version.value

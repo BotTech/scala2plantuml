@@ -55,17 +55,14 @@ jobs:
       - name: Check formatting and style
         run: sbt ++${{ matrix.scala }} scalafmtCheckAll scalastyle
 
+      - name: Check version adheres to the policy
+        run: sbt ++${{ matrix.scala }} versionPolicyCheck
+
       - name: Check documentation has been generated
-        run: sbt ++${{ matrix.scala }} doc/mdoc
+        run: sbt ++${{ matrix.scala }} mdocCheck
 
-      - name: Check declared dependencies
-        run: sbt ++${{ matrix.scala }} undeclaredCompileDependenciesTest unusedCompileDependenciesTest
-
-      - name: Check for known vulnerabilities
-        run: sbt ++${{ matrix.scala }} dependencyCheckAggregate
-
-      - name: Check binary compatibility
-        run: sbt ++${{ matrix.scala }} mimaReportBinaryIssues
+      - name: Check dependencies
+        run: sbt ++${{ matrix.scala }} evictionCheck undeclaredCompileDependenciesTest unusedCompileDependenciesTest dependencyCheckAggregate
 
       - name: Build and test
         run: sbt ++${{ matrix.scala }} test scripted
