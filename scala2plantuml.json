@@ -1,7 +1,8 @@
 {
   "scala2plantuml": {
     "repositories": [
-      "central"
+      "central",
+      "ivy2local"
     ],
     "dependencies": [
       "nz.co.bottech::scala2plantuml-cli:latest.release"
