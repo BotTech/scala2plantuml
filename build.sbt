@@ -9,7 +9,7 @@ crossScalaVersions := Nil
 publish / skip := true
 git.useGitDescribe := true
 
-aggregateProjects(cli, core, sbtPluginProject)
+aggregateProjects(cli, core, docs, sbtPluginProject)
 
 val scala212               = "2.12.13"
 val scala213               = "2.13.4"
@@ -71,4 +71,13 @@ lazy val sbtPluginProject = (project in file("sbt"))
       Def.unit(publishLocal.all(ScopeFilter(projects = inDependencies(ThisProject, includeRoot = false))).value)
     },
     scriptedLaunchOpts += s"-Dplugin.version=${version.value}"
+  )
+
+lazy val docs = (project in file("doc-templates"))
+  .enablePlugins(MdocPlugin)
+  .settings(
+    mdocVariables := Map(
+      "VERSION" -> version.value
+    ),
+    mdocOut := (ThisBuild / baseDirectory).value
   )
