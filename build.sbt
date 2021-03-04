@@ -55,7 +55,6 @@ lazy val core = project
   .settings(libraryProjectSettings)
   .settings(
     name := s"${(LocalRootProject / name).value}",
-    // Required for testing.
     semanticdbEnabled := true,
     semanticdbVersion := "4.4.10",
     libraryDependencies ++= List(
@@ -91,13 +90,6 @@ lazy val sbtProject = (project in file("sbt"))
   .enablePlugins(SbtPlugin)
   .settings(commonProjectSettings)
   .settings(
-    skip := {
-      CrossVersion.partialVersion((core / scalaVersion).value) match {
-        case Some((2, n)) if n == 13 => true
-        case _                       => false
-      }
-    },
-    crossScalaVersions := Nil,
     name := s"sbt-${(LocalRootProject / name).value}",
     scriptedBufferLog := false,
     scriptedDependencies := {
