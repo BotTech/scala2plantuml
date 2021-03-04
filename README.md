@@ -43,7 +43,7 @@ addSbtPlugin("nz.co.bottech" % "sbt-scala2plantuml" % "9f5ed000bd2bc569a7b138dfa
 Use [Coursier] to create a launcher for Scala2PlantUML:
 
 ```shell
-cs install --channel https://git.io/Jqv1i
+cs install --channel https://git.io/Jqv1i scala2plantuml
 ```
 
 ### Usage

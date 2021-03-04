@@ -3,6 +3,7 @@
     "central"
   ],
   "dependencies": [
-    "nz.co.bottech::scala2plantuml-cli:9f5ed000bd2bc569a7b138dfa02eb575c79cf1f1-SNAPSHOT"
-  ]
+    "nz.co.bottech::scala2plantuml-cli:latest.release"
+  ],
+  "name": "scala2plantuml"
 }
