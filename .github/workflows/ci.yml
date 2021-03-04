@@ -52,8 +52,15 @@ jobs:
       - name: Check that workflows are up to date
         run: sbt ++${{ matrix.scala }} githubWorkflowCheck
 
-      - name: Build project
-        run: sbt ++${{ matrix.scala }} test
+      - run: sbt ++${{ matrix.scala }} doc/mdoc
+
+      - run: sbt ++${{ matrix.scala }} undeclaredCompileDependenciesTest
+
+      - run: sbt ++${{ matrix.scala }} unusedCompileDependenciesTest
+
+      - run: sbt ++${{ matrix.scala }} dependencyCheckAggregate
+
+      - run: sbt ++${{ matrix.scala }} mimaReportBinaryIssues
 
       - name: Compress target directories
         run: tar cf targets.tar sbt/target target doc-templates/target cli/target core/target project/target

@@ -15,6 +15,14 @@ inThisBuild(
     licenses := List("MIT" -> url("https://github.com/BotTech/scala2plantuml/blob/main/LICENSE")),
     organization := "nz.co.bottech",
     organizationName := "BotTech",
+    githubWorkflowBuild := List(
+      WorkflowStep.Sbt(List("scalafmtCheckAll")),
+      WorkflowStep.Sbt(List("doc/mdoc")),
+      WorkflowStep.Sbt(List("undeclaredCompileDependenciesTest")),
+      WorkflowStep.Sbt(List("unusedCompileDependenciesTest")),
+      WorkflowStep.Sbt(List("dependencyCheckAggregate")),
+      WorkflowStep.Sbt(List("mimaReportBinaryIssues"))
+    ),
     githubWorkflowPublish := List(
       WorkflowStep.Sbt(
         List("ci-release"),
@@ -103,8 +111,12 @@ lazy val docs = (project in file("doc-templates"))
   .enablePlugins(MdocPlugin)
   .settings(metaProjectSettings)
   .settings(
+    mdocExtraArguments ++= {
+      if (githubIsWorkflowBuild.value) List("--check")
+      else Nil
+    },
+    mdocOut := (ThisBuild / baseDirectory).value,
     mdocVariables := Map(
       "VERSION" -> version.value
-    ),
-    mdocOut := (ThisBuild / baseDirectory).value
+    )
   )
