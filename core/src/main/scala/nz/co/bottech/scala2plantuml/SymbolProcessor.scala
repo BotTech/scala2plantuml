@@ -61,11 +61,11 @@ private[scala2plantuml] object SymbolProcessor {
 
   private def symbolInformationString(symbol: SymbolInformation): String =
     s"""SymbolInformation(
-       |  language: ${symbol.language}
+       |  language: ${symbol.language.toString}
        |  symbol: ${symbol.symbol}
-       |  kind: ${symbol.kind}
+       |  kind: ${symbol.kind.toString}
        |  display_name: ${symbol.displayName}
-       |  signature: ${symbol.signature}
+       |  signature: ${symbol.signature.toString}
        |)""".stripMargin
 
   private def symbolElements(

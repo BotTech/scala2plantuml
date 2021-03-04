@@ -24,6 +24,8 @@ addCommandAlias(
   ).mkString("; ")
 )
 
+val isScala213 = settingKey[Boolean]("Checks if the current Scala version is 2.13")
+
 inThisBuild(
   List(
     crossScalaVersions := supportedScalaVersions,
@@ -60,12 +62,17 @@ inThisBuild(
 )
 
 val commonProjectSettings = List(
+  isScala213 := isScala213Setting.value,
   mimaPreviousArtifacts := previousStableVersion.value.map(organization.value %% moduleName.value % _).toSet,
   scalastyleFailOnError := true,
   scalastyleFailOnWarning := true,
   // Workaround for https://github.com/cb372/sbt-explicit-dependencies/issues/97
   undeclaredCompileDependenciesFilter -= moduleFilter("com.thesamet.scalapb", "scalapb-runtime"),
-  wartremoverErrors ++= Warts.unsafe
+  wartremoverErrors := {
+    // Workaround for https://github.com/wartremover/wartremover/issues/504
+    if (isScala213.value) Warts.unsafe.filterNot(_.clazz == Wart.Any.clazz)
+    else Warts.unsafe
+  }
 )
 
 val metaProjectSettings = List(
@@ -165,10 +172,14 @@ lazy val docs = (project in file("doc-templates"))
     )
   )
 
-def collectionsCompatibilityDependency: Def.Initialize[List[ModuleID]] = Def.setting {
+def isScala213Setting: Def.Initialize[Boolean] = Def.setting {
   CrossVersion.partialVersion(scalaVersion.value) match {
-    case Some((2, n)) if n == 12 =>
-      List("org.scala-lang.modules" %% "scala-collection-compat" % scalaCollectionCompatibilityVersion)
-    case _ => Nil
+    case Some((2, n)) if n == 13 => true
+    case _                       => false
   }
+}
+
+def collectionsCompatibilityDependency: Def.Initialize[List[ModuleID]] = Def.setting {
+  if (isScala213.value) Nil
+  else List("org.scala-lang.modules" %% "scala-collection-compat" % scalaCollectionCompatibilityVersion)
 }

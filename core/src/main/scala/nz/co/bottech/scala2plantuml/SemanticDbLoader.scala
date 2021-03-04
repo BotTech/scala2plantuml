@@ -65,7 +65,7 @@ private[scala2plantuml] class SemanticdbLoader(prefixes: Seq[String], classLoade
             Right(results.collect { case Right(textDocuments) => textDocuments }.flatten.toSeq)
           }
         } else
-          Left(Vector(s"Cannot load resources from: $resource"))
+          Left(Vector(s"Cannot load resources from: ${resource.toString}"))
       }
     )
 
