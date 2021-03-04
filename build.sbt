@@ -69,10 +69,13 @@ val commonProjectSettings = List(
   scalastyleFailOnWarning := true,
   // Workaround for https://github.com/cb372/sbt-explicit-dependencies/issues/97
   undeclaredCompileDependenciesFilter -= moduleFilter("com.thesamet.scalapb", "scalapb-runtime"),
-  wartremoverErrors := {
+  Compile / compile / wartremoverErrors := {
     // Workaround for https://github.com/wartremover/wartremover/issues/504
     if (isScala213.value) Warts.unsafe.filterNot(_.clazz == Wart.Any.clazz)
     else Warts.unsafe
+  },
+  Test / compile / wartremoverErrors := {
+    (Compile / compile / wartremoverErrors).value.filterNot(_.clazz == Wart.DefaultArguments.clazz)
   }
 )
 
@@ -172,9 +175,9 @@ lazy val docs = (project in file("doc-templates"))
       "VERSION" -> version.value
     ),
     unusedCompileDependenciesFilter -= new ModuleFilter {
-      override def apply(a: ModuleID) = {
+
+      override def apply(a: ModuleID) =
         moduleFilter("org.scalameta", "mdoc_2.12.12").apply(a)
-      }
     }
   )
 
