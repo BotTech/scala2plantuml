@@ -16,12 +16,15 @@ inThisBuild(
     organization := "nz.co.bottech",
     organizationName := "BotTech",
     githubWorkflowBuild := List(
-      WorkflowStep.Sbt(List("scalafmtCheckAll")),
-      WorkflowStep.Sbt(List("doc/mdoc")),
-      WorkflowStep.Sbt(List("undeclaredCompileDependenciesTest")),
-      WorkflowStep.Sbt(List("unusedCompileDependenciesTest")),
-      WorkflowStep.Sbt(List("dependencyCheckAggregate")),
-      WorkflowStep.Sbt(List("mimaReportBinaryIssues"))
+      WorkflowStep.Sbt(List("scalafmtCheckAll"), name = Some("Check formatting")),
+      WorkflowStep.Sbt(List("doc/mdoc"), name = Some("Check documentation has been generated")),
+      WorkflowStep.Sbt(
+        List("undeclaredCompileDependenciesTest unusedCompileDependenciesTest"),
+        name = Some("Check declared dependencies")
+      ),
+      WorkflowStep.Sbt(List("dependencyCheckAggregate"), name = Some("Check for known vulnerabilities")),
+      WorkflowStep.Sbt(List("mimaReportBinaryIssues"), name = Some("Check binary compatibility")),
+      WorkflowStep.Sbt(List("test scripted"), name = Some("Build and test"))
     ),
     githubWorkflowPublish := List(
       WorkflowStep.Sbt(
