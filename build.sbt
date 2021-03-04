@@ -62,5 +62,11 @@ lazy val sbtPluginProject = (project in file("sbt"))
   .dependsOn(core)
   .enablePlugins(SbtPlugin)
   .settings(
-    name := s"sbt-${(LocalRootProject / name).value}"
+    name := s"sbt-${(LocalRootProject / name).value}",
+    scriptedBufferLog := false,
+    scriptedDependencies := {
+      Def.unit(scriptedDependencies.value)
+      Def.unit(publishLocal.all(ScopeFilter(projects = inDependencies(ThisProject, includeRoot = false))).value)
+    },
+    scriptedLaunchOpts += s"-Dplugin.version=${version.value}"
   )

@@ -1,19 +1,23 @@
-package nz.co.bottech.scala2plantuml
+package nz.co.bottech.scala2plantuml.sbt
+
+import nz.co.bottech.scala2plantuml._
 
 import java.io.File
 import java.net.URL
 
-// TODO: Refactor the common code between here and the sbt plugin.
+// TODO: Refactor the common code between here and the CLI.
 final case class Config(
-    symbol: String = "",
+    symbol: String,
+    outputFile: File,
     includes: Set[String] = Set(),
     excludes: Set[String] = Set(ScalaStdLibPattern, JavaStdLibPattern),
-    urls: Vector[URL] = Vector.empty,
-    projects: Vector[String] = Vector.empty,
-    sourceRoots: Vector[String] = Vector("src/main/scala"),
-    outputFile: Option[File] = None,
-    logInColour: Boolean = true,
-    logLevel: Int = 0) {
+    urls: Vector[URL] = Vector.empty) {
+
+  def replaceOutputFile(file: String): Config =
+    replaceOutputFile(new File(file))
+
+  def replaceOutputFile(file: File): Config =
+    copy(outputFile = file)
 
   def addInclude(pattern: String): Config =
     copy(includes = includes + pattern)
@@ -35,15 +39,6 @@ final case class Config(
   def addURL(url: URL): Config =
     copy(urls = urls :+ url)
 
-  def addProject(project: String): Config =
-    copy(projects = projects :+ project)
-
-  def addSourceRoot(root: String): Config =
-    copy(sourceRoots = sourceRoots :+ root)
-
-  def increaseLogLevel: Config =
-    copy(logLevel = logLevel + 1)
-
   def ignore: String => Boolean = {
     val includesWithDefault = if (includes.isEmpty) Set("**") else includes
     val includeTests        = includesWithDefault.toSeq.map(patternToRegex(_).asMatchPredicate)
@@ -51,8 +46,8 @@ final case class Config(
     symbol => !includeTests.exists(_.test(symbol)) || excludeTests.exists(_.test(symbol))
   }
 
-  def prefixes: Vector[String] = {
-    val projectsWithDefault = if (projects.isEmpty) Vector("") else projects
+  def prefixes(projects: Seq[String], sourceRoots: Seq[String]): Seq[String] = {
+    val projectsWithDefault = if (projects.isEmpty) Seq("") else projects
     for {
       project <- projectsWithDefault
       source  <- sourceRoots

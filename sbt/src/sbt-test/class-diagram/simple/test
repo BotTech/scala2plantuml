@@ -1,0 +1,2 @@
+> scala2PlantUML "com/example/Foo#"
+$ must-mirror expected.puml target/com.example.Foo.puml

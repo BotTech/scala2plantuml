@@ -4,6 +4,7 @@ import nz.co.bottech.scala2plantuml
 import nz.co.bottech.scala2plantuml.ClassDiagramElement._
 import nz.co.bottech.scala2plantuml.ClassDiagramRenderer.Options._
 
+import java.io.{StringWriter, Writer}
 import scala.annotation.tailrec
 
 object ClassDiagramRenderer {
@@ -88,14 +89,20 @@ object ClassDiagramRenderer {
     case object ShowSyntheticMethods extends SyntheticMethodsOption
   }
 
-  def render(elements: Seq[ClassDiagramElement], options: Options): String =
-    s"""@startuml
-       |${renderSnippet(elements, options)}
-       |@enduml""".stripMargin
+  def renderString(elements: Seq[ClassDiagramElement], options: Options): String =
+    writeAsString(render(elements, options, _))
 
-  def renderSnippet(elements: Seq[ClassDiagramElement], options: Options): String = {
+  def render(elements: Seq[ClassDiagramElement], options: Options, writer: Writer): Unit = {
+    writer.write("@startuml\n")
+    renderSnippet(elements, options, writer)
+    writer.write("@enduml\n")
+  }
+
+  def renderSnippetString(elements: Seq[ClassDiagramElement], options: Options): String =
+    writeAsString(renderSnippet(elements, options, _))
+
+  def renderSnippet(elements: Seq[ClassDiagramElement], options: Options, writer: Writer): Unit = {
     val elementsWithNames = DiagramModifications(elements, options)
-    val builder           = new StringBuilder
     def owns(outer: Type, current: ClassDiagramElement): Boolean =
       current match {
         case member: Member => outer.owns(member)
@@ -116,25 +123,30 @@ object ClassDiagramRenderer {
         remaining: Seq[ClassDiagramElement],
         previous: Option[ClassDiagramElement],
         outer: Option[Type]
-      ): String =
+      ): Unit =
       remaining match {
         case head +: tail =>
           val nested = nest(head, previous, outer)
           if (outer.isEmpty) {
-            if (nested) builder.append(" {")
-          } else if (!nested) builder.append("\n}")
-          builder.append('\n')
-          if (nested) builder.append("  ")
+            if (nested) writer.write(" {")
+          } else if (!nested) writer.write("\n}")
+          if (previous.nonEmpty) writer.write('\n')
+          if (nested) writer.write("  ")
           val nextOuter = if (nested) outer.orElse(previous).collect({ case typ: Type => typ }) else None
-          builder.append(renderElementStart(head, nextOuter, elementsWithNames.names))
+          writer.write(renderElementStart(head, nextOuter, elementsWithNames.names))
           loop(tail, Some(head), nextOuter)
         case Seq() =>
-          if (outer.nonEmpty) builder.append("\n}")
-          builder.append('\n')
-          builder.toString
+          if (outer.nonEmpty) writer.write("\n}")
+          writer.write('\n')
       }
 
     loop(elementsWithNames.elements, None, None)
+  }
+
+  private def writeAsString(f: Writer => Unit): String = {
+    val writer = new StringWriter()
+    f(writer)
+    writer.toString
   }
 
   private def renderElementStart(

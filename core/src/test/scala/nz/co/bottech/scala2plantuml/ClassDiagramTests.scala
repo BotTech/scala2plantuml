@@ -25,6 +25,6 @@ trait ClassDiagramTests {
         stdLibSymbol,
         this.getClass.getClassLoader
       )
-    ClassDiagramRenderer.renderSnippet(elements, options)
+    ClassDiagramRenderer.renderSnippetString(elements, options)
   }
 }

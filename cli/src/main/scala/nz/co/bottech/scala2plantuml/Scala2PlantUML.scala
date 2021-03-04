@@ -5,9 +5,9 @@ import nz.co.bottech.scala2plantuml.ClassDiagramRenderer.Options
 import org.slf4j.LoggerFactory
 import scopt.{DefaultOParserSetup, OParser, OParserSetup}
 
-import java.io.File
+import java.io.{File, FileWriter}
 import java.net.URLClassLoader
-import java.nio.file.Files
+import scala.util.Using
 
 object Scala2PlantUML extends App {
 
@@ -47,9 +47,7 @@ object Scala2PlantUML extends App {
         ),
       note(
         """
-          |The --include and --exclude options control which symbols will be processed.
-          |
-          |Excluded symbols still appear in the diagram as empty classes if referenced from another symbol but they will not be processed.
+          |The --include and --exclude options control which symbols will be processed. Each of these can be provided multiple times.
           |
           |The pattern supports two wildcards:
           |1) ** (matches any character)
@@ -214,12 +212,14 @@ object Scala2PlantUML extends App {
       config.ignore,
       classLoader(config)
     )
-    val diagram = ClassDiagramRenderer.render(elements, Options.Default)
     config.outputFile match {
       case Some(file) =>
         Option(file.getParentFile).foreach(_.mkdirs())
-        Files.writeString(file.toPath, diagram)
-      case None => println(diagram)
+        Using(new FileWriter(file)) { writer =>
+          ClassDiagramRenderer.render(elements, Options.Default, writer)
+        }
+      case None =>
+        println(ClassDiagramRenderer.renderString(elements, Options.Default))
     }
   }
 
