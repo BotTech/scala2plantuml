@@ -8,7 +8,8 @@ private[scala2plantuml] object NaturalTypeOrdering extends Ordering[String] {
   implicit private class StringOps(val str: String) extends AnyVal {
 
     def compressWhitespace: String =
-      str.strip().replaceAll("""\p{javaWhitespace}+""", " ")
+      // TODO: Strip with Java 11.
+      str.trim.replaceAll("""\p{javaWhitespace}+""", " ")
 
     def normalize: String =
       Normalizer.normalize(str, Normalizer.Form.NFKC)

@@ -41,9 +41,9 @@ final case class Config(
 
   def ignore: String => Boolean = {
     val includesWithDefault = if (includes.isEmpty) Set("**") else includes
-    val includeTests        = includesWithDefault.toSeq.map(patternToRegex(_).asMatchPredicate)
-    val excludeTests        = excludes.toSeq.map(patternToRegex(_).asMatchPredicate)
-    symbol => !includeTests.exists(_.test(symbol)) || excludeTests.exists(_.test(symbol))
+    val includeTests        = includesWithDefault.toSeq.map(patternPredicate)
+    val excludeTests        = excludes.toSeq.map(patternPredicate)
+    symbol => !includeTests.exists(_(symbol)) || excludeTests.exists(_(symbol))
   }
 
   def prefixes(projects: Seq[String], sourceRoots: Seq[String]): Seq[String] = {

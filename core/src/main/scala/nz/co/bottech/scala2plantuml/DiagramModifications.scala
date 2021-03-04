@@ -18,8 +18,8 @@ private[scala2plantuml] object DiagramModifications {
     def removeHidden(options: Options): ElementsWithNames =
       options.hide match {
         case Options.HideMatching(patterns) =>
-          val tests                               = patterns.map(patternToRegex(_).asMatchPredicate)
-          def hideSymbol(symbol: String): Boolean = tests.exists(_.test(symbol))
+          val tests                               = patterns.map(patternPredicate)
+          def hideSymbol(symbol: String): Boolean = tests.exists(_(symbol))
           def hideElement(element: ClassDiagramElement): Boolean =
             element match {
               case definition: Definition   => hideSymbol(definition.symbol)
