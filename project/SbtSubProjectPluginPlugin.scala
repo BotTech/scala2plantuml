@@ -11,9 +11,15 @@ object SbtSubProjectPluginPlugin extends AutoPlugin {
   override def projectSettings: Seq[Def.Setting[_]] =
     List(
       crossScalaVersions := Nil,
+      evicted := evictedTask.value,
       skip := skipTask.value,
       update := updateTask.value
     )
+
+  private def evictedTask = Def.task {
+    val report = update.value
+    EvictionWarning(ivyModule.value, (evicted / evictionWarningOptions).value, report)
+  }
 
   private def skipTask =
     Def.task {

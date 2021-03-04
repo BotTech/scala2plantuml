@@ -62,7 +62,7 @@ jobs:
         run: sbt ++${{ matrix.scala }} mdocCheck
 
       - name: Check dependencies
-        run: sbt ++${{ matrix.scala }} evictionCheck undeclaredCompileDependenciesTest unusedCompileDependenciesTest dependencyCheckAggregate
+        run: sbt ++${{ matrix.scala }} evicted undeclaredCompileDependenciesTest unusedCompileDependenciesTest dependencyCheckAggregate
 
       - name: Build and test
         run: sbt ++${{ matrix.scala }} test scripted

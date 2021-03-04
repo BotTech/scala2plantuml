@@ -19,7 +19,7 @@ addCommandAlias(
     "+versionPolicyCheck",
     "+githubWorkflowCheck",
     "mdocCheck",
-    "+evictionCheck",
+    "evicted",
     "+undeclaredCompileDependenciesTest",
     "+unusedCompileDependenciesTest",
     "+dependencyCheckAggregate",
@@ -43,6 +43,8 @@ inThisBuild(
     crossScalaVersions := supportedScalaVersions,
     dependencyCheckAssemblyAnalyzerEnabled := Some(false),
     description := "Scala2PlantUML generates PlantUML diagrams from Scala code.",
+    // TODO: Add this when sbt 1.5.0 is released.
+    // evictionErrorLevel := Level.Error,
     homepage := Some(url("https://github.com/BotTech/scala2plantuml")),
     licenses := List("MIT" -> url("https://github.com/BotTech/scala2plantuml/blob/main/LICENSE")),
     organization := "nz.co.bottech",
@@ -53,7 +55,7 @@ inThisBuild(
       WorkflowStep.Sbt(List("mdocCheck"), name = Some("Check documentation has been generated")),
       WorkflowStep.Sbt(
         List(
-          "evictionCheck",
+          "evicted",
           "undeclaredCompileDependenciesTest",
           "unusedCompileDependenciesTest",
           "dependencyCheckAggregate"
@@ -76,7 +78,7 @@ inThisBuild(
     githubWorkflowPublishTargetBranches := List(RefPredicate.StartsWith(Ref.Tag("v"))),
     githubWorkflowTargetTags ++= Seq("v*"),
     versionPolicyIntention := Compatibility.BinaryAndSourceCompatible,
-    versionScheme := Some("semver-spec")
+    versionScheme := Some("early-semver")
   )
 )
 
@@ -116,9 +118,6 @@ lazy val root = (project in file("."))
 lazy val core = project
   .settings(libraryProjectSettings)
   .settings(
-    name := s"${(LocalRootProject / name).value}",
-    semanticdbEnabled := true,
-    semanticdbVersion := "4.4.10",
     libraryDependencies ++= collectionsCompatibilityDependency.value,
     libraryDependencies ++= List(
       "org.scalameta" %% "scalameta"       % semanticdbVersion.value,
@@ -128,6 +127,9 @@ lazy val core = project
       "ch.qos.logback" % "logback-core"    % logbackVersion % Test,
       "com.lihaoyi"   %% "utest"           % utestVersion   % Test
     ),
+    name := s"${(LocalRootProject / name).value}",
+    semanticdbEnabled := true,
+    semanticdbVersion := "4.4.10",
     testFrameworks += new TestFramework("utest.runner.Framework"),
     Test / managedSourceDirectories += (Test / semanticdbTargetRoot).value,
     Test / fullClasspath += (Test / semanticdbTargetRoot).value
