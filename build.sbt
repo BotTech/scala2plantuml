@@ -16,6 +16,7 @@ addCommandAlias(
   List(
     "scalafmtCheckAll",
     "scalastyle",
+    "+githubWorkflowCheck",
     "+undeclaredCompileDependenciesTest",
     "+unusedCompileDependenciesTest",
     "+dependencyCheckAggregate",
