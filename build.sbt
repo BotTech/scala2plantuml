@@ -31,6 +31,7 @@ val isScala213 = settingKey[Boolean]("Checks if the current Scala version is 2.1
 inThisBuild(
   List(
     crossScalaVersions := supportedScalaVersions,
+    dependencyCheckAssemblyAnalyzerEnabled := Some(false),
     description := "Scala2PlantUML generates PlantUML diagrams from Scala code.",
     homepage := Some(url("https://github.com/BotTech/scala2plantuml")),
     licenses := List("MIT" -> url("https://github.com/BotTech/scala2plantuml/blob/main/LICENSE")),
