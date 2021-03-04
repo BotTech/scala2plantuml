@@ -7,6 +7,20 @@ val scoptVersion   = "4.0.0"
 val slf4jVersion   = "1.7.30"
 val utestVersion   = "0.7.7"
 
+addCommandAlias(
+  "check",
+  List(
+    "scalafmtCheckAll",
+    "scalastyle",
+    "undeclaredCompileDependenciesTest",
+    "unusedCompileDependenciesTest",
+    "dependencyCheckAggregate",
+    "mimaReportBinaryIssues",
+    "test",
+    "scripted"
+  ).mkString("; ")
+)
+
 inThisBuild(
   List(
     crossScalaVersions := supportedScalaVersions,
@@ -16,7 +30,7 @@ inThisBuild(
     organization := "nz.co.bottech",
     organizationName := "BotTech",
     githubWorkflowBuild := List(
-      WorkflowStep.Sbt(List("scalafmtCheckAll"), name = Some("Check formatting")),
+      WorkflowStep.Sbt(List("scalafmtCheckAll scalastyle"), name = Some("Check formatting and style")),
       WorkflowStep.Sbt(List("doc/mdoc"), name = Some("Check documentation has been generated")),
       WorkflowStep.Sbt(
         List("undeclaredCompileDependenciesTest unusedCompileDependenciesTest"),
@@ -43,7 +57,10 @@ inThisBuild(
 )
 
 val commonProjectSettings = List(
-  mimaPreviousArtifacts := previousStableVersion.value.map(organization.value %% moduleName.value % _).toSet
+  mimaPreviousArtifacts := previousStableVersion.value.map(organization.value %% moduleName.value % _).toSet,
+  scalastyleFailOnError := true,
+  scalastyleFailOnWarning := true,
+  wartremoverErrors ++= Warts.unsafe
 )
 
 val metaProjectSettings = List(
