@@ -16,13 +16,23 @@ addCommandAlias(
   List(
     "scalafmtCheckAll",
     "scalastyle",
+    "+versionPolicyCheck",
     "+githubWorkflowCheck",
+    "mdocCheck",
     "+undeclaredCompileDependenciesTest",
     "+unusedCompileDependenciesTest",
     "+dependencyCheckAggregate",
     "+mimaReportBinaryIssues",
     "+test",
     "scripted"
+  ).mkString("; ")
+)
+
+addCommandAlias(
+  "mdocCheck",
+  List(
+    """set docs / mdocExtraArguments += "--check"""",
+    "docs / mdoc"
   ).mkString("; ")
 )
 
@@ -39,7 +49,8 @@ inThisBuild(
     organizationName := "BotTech",
     githubWorkflowBuild := List(
       WorkflowStep.Sbt(List("scalafmtCheckAll", "scalastyle"), name = Some("Check formatting and style")),
-      WorkflowStep.Sbt(List("doc/mdoc"), name = Some("Check documentation has been generated")),
+      WorkflowStep.Sbt(List("versionPolicyCheck"), name = Some("Check version adheres to the policy")),
+      WorkflowStep.Sbt(List("mdocCheck"), name = Some("Check documentation has been generated")),
       WorkflowStep.Sbt(
         List("undeclaredCompileDependenciesTest", "unusedCompileDependenciesTest"),
         name = Some("Check declared dependencies")
@@ -60,7 +71,8 @@ inThisBuild(
       )
     ),
     githubWorkflowPublishTargetBranches := List(RefPredicate.StartsWith(Ref.Tag("v"))),
-    githubWorkflowTargetTags ++= Seq("v*")
+    githubWorkflowTargetTags ++= Seq("v*"),
+    versionPolicyIntention := Compatibility.BinaryAndSourceCompatible
   )
 )
 
@@ -168,10 +180,6 @@ lazy val docs = (project in file("doc-templates"))
   .enablePlugins(MdocPlugin)
   .settings(metaProjectSettings)
   .settings(
-    mdocExtraArguments ++= {
-      if (githubIsWorkflowBuild.value) List("--check")
-      else Nil
-    },
     mdocOut := (ThisBuild / baseDirectory).value,
     mdocVariables := Map(
       "VERSION" -> version.value
