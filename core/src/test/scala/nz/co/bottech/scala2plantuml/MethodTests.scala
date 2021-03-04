@@ -8,14 +8,20 @@ object MethodTests extends TestSuite with ClassDiagramTests {
 
   val tests: Tests = Tests {
     test("public method") {
-      success("PublicMethod#", """class PublicMethod {
-                                |  + {method} method
-                                |}""".stripMargin)
+      success(
+        "PublicMethod#",
+        """class PublicMethod {
+          |  + {method} method
+          |}""".stripMargin
+      )
     }
     test("private method") {
-      success("PrivateMethod#", """class PrivateMethod {
-                                 |  - {method} method
-                                 |}""".stripMargin)
+      success(
+        "PrivateMethod#",
+        """class PrivateMethod {
+          |  - {method} method
+          |}""".stripMargin
+      )
     }
     test("private this method") {
       success(

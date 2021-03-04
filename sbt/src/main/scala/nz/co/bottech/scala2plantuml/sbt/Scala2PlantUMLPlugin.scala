@@ -55,8 +55,8 @@ object Scala2PlantUMLPlugin extends AutoPlugin {
     val configWithOutputFile =
       if (config.outputFile.isAbsolute) config
       else config.replaceOutputFile(targetDir / config.outputFile.toString)
-    classpath.foldLeft(configWithOutputFile) {
-      case (config, entry) => config.addFile(entry.data)
+    classpath.foldLeft(configWithOutputFile) { case (config, entry) =>
+      config.addFile(entry.data)
     }
   }
 

@@ -159,8 +159,8 @@ private[scala2plantuml] object DiagramModifications {
             val i = symbol.lastIndexOf('/')
             symbol.take(i + 1)
           }.getOrElse("")
-          val commonPrefix = symbols.foldLeft(firstPrefix) {
-            case (prefix, symbol) => longestPrefix(prefix, symbol)
+          val commonPrefix = symbols.foldLeft(firstPrefix) { case (prefix, symbol) =>
+            longestPrefix(prefix, symbol)
           }
           elements.flatMap(element => elementNames(element, _.drop(commonPrefix.length))).toMap
       }

@@ -8,9 +8,12 @@ object StaticTests extends TestSuite with ClassDiagramTests {
 
   val tests: Tests = Tests {
     test("static field") {
-      success("StaticField.", """class StaticField {
-                               |  + {static} {field} field
-                               |}""".stripMargin)
+      success(
+        "StaticField.",
+        """class StaticField {
+          |  + {static} {field} field
+          |}""".stripMargin
+      )
     }
     test("static method") {
       success(

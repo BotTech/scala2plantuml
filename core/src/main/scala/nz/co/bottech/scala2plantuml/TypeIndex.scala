@@ -18,8 +18,8 @@ private[scala2plantuml] class TypeIndex(symbolIndex: SymbolIndex) {
           case typeSignature: TypeSignature   => List(typeSignature.upperBound)
           case _                              => Nil
         }
-        val parentTypeRefs = parentTypes.collect {
-          case typeRef: TypeRef => typeRef
+        val parentTypeRefs = parentTypes.collect { case typeRef: TypeRef =>
+          typeRef
         }
         val parentSymbols     = parentTypeRefs.map(lookupSymbol)
         val parentHierarchies = parentSymbols.map(hierarchy)

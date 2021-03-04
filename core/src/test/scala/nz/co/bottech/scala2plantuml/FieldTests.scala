@@ -8,14 +8,20 @@ object FieldTests extends TestSuite with ClassDiagramTests {
 
   val tests: Tests = Tests {
     test("public field") {
-      success("PublicField#", """class PublicField {
-                               |  + {field} field
-                               |}""".stripMargin)
+      success(
+        "PublicField#",
+        """class PublicField {
+          |  + {field} field
+          |}""".stripMargin
+      )
     }
     test("private field") {
-      success("PrivateField#", """class PrivateField {
-                                |  - {field} field
-                                |}""".stripMargin)
+      success(
+        "PrivateField#",
+        """class PrivateField {
+          |  - {field} field
+          |}""".stripMargin
+      )
     }
     test("private this field") {
       success(
@@ -34,9 +40,12 @@ object FieldTests extends TestSuite with ClassDiagramTests {
       )
     }
     test("protected field") {
-      success("ProtectedField#", """class ProtectedField {
-                                  |  # {field} field
-                                  |}""".stripMargin)
+      success(
+        "ProtectedField#",
+        """class ProtectedField {
+          |  # {field} field
+          |}""".stripMargin
+      )
     }
     test("protected this field") {
       success(

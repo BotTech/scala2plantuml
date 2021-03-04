@@ -65,7 +65,6 @@ object ClassDiagramRenderer {
     sealed trait ConstructorOption
     case object HideConstructors extends ConstructorOption
 
-
     final case class ShowConstructors(
         stereotype: Option[String] = None,
         name: Method => String = _.displayName)

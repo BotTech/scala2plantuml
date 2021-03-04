@@ -9,12 +9,18 @@ object NestedTypeTests extends TestSuite with ClassDiagramTests {
 
   val tests: Tests = Tests {
     test("nested class") {
-      success("OuterClass#", """class OuterClass
-                              |class "OuterClass#InnerClass"""".stripMargin)
+      success(
+        "OuterClass#",
+        """class OuterClass
+          |class "OuterClass#InnerClass"""".stripMargin
+      )
     }
     test("nested object") {
-      success("OuterObject.", """class OuterObject
-                               |class "OuterObject$InnerClass"""".stripMargin)
+      success(
+        "OuterObject.",
+        """class OuterObject
+          |class "OuterObject$InnerClass"""".stripMargin
+      )
     }
     test("nested class with fields sorted") {
       success(

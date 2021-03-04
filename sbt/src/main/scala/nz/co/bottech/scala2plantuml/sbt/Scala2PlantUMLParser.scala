@@ -21,13 +21,12 @@ private[sbt] object Scala2PlantUMLParser {
     val options = OutputFileParser | IncludeParser | ExcludeParser
     // TODO: Get example symbols.
     val parser = Space ~> options.* ~ SymbolParser ~ options.*
-    parser.map {
-      case ((optionsBefore, symbol), optionsAfter) =>
-        def configure(config: Config, f: Config => Config) = f(config)
-        val outputFile                                     = file(s"${symbolToScalaIdentifier(symbol)}.puml")
-        val initialConfig                                  = Config(symbol, outputFile)
-        val config                                         = optionsBefore.foldLeft(initialConfig)(configure)
-        optionsAfter.foldLeft(config)(configure)
+    parser.map { case ((optionsBefore, symbol), optionsAfter) =>
+      def configure(config: Config, f: Config => Config) = f(config)
+      val outputFile                                     = file(s"${symbolToScalaIdentifier(symbol)}.puml")
+      val initialConfig                                  = Config(symbol, outputFile)
+      val config                                         = optionsBefore.foldLeft(initialConfig)(configure)
+      optionsAfter.foldLeft(config)(configure)
     }
   }
 }

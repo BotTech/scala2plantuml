@@ -61,12 +61,8 @@ private[scala2plantuml] class SemanticdbLoader(prefixes: Seq[String], classLoade
           val results = findSemanticdbs(file).view.map { file =>
             loadResource(new FileInputStream(file))
           }.takeWhile(_.isRight)
-          results.lastOption.collect {
-            case left @ Left(_) => left
-          }.getOrElse {
-            Right(results.collect {
-              case Right(textDocuments) => textDocuments
-            }.flatten.toSeq)
+          results.lastOption.collect { case left @ Left(_) => left }.getOrElse {
+            Right(results.collect { case Right(textDocuments) => textDocuments }.flatten.toSeq)
           }
         } else
           Left(Vector(s"Cannot load resources from: $resource"))

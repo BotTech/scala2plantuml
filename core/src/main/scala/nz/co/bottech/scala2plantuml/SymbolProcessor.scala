@@ -263,9 +263,8 @@ private[scala2plantuml] object SymbolProcessor {
       _.symlinks
         .flatMap(symbolIndex.lookup)
         .map(info => (info, info.signature))
-        .collect {
-          case (info, typ: TypeSignature) =>
-            TypeParameter(info.symbol, typeSymbols(typ.upperBound, includeArguments = false))
+        .collect { case (info, typ: TypeSignature) =>
+          TypeParameter(info.symbol, typeSymbols(typ.upperBound, includeArguments = false))
         }
     }.getOrElse(Seq.empty)
 
