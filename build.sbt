@@ -1,32 +1,58 @@
-enablePlugins(GitVersioning)
-
-ThisBuild / organization := "nz.co.bottech"
-ThisBuild / organizationName := "BotTech"
-ThisBuild / homepage := Some(url("https://github.com/BotTech/scala2plantuml"))
-
-name := "scala2plantuml"
-crossScalaVersions := Nil
-publish / skip := true
-git.useGitDescribe := true
-
-aggregateProjects(cli, core, docs, sbtPluginProject)
-
 val scala212               = "2.12.13"
 val scala213               = "2.13.4"
-val supportedScalaVersions = List(scala212)
+val supportedScalaVersions = List(scala212, scala213)
 
 val logbackVersion = "1.2.3"
 val scoptVersion   = "4.0.0"
 val slf4jVersion   = "1.7.30"
 val utestVersion   = "0.7.7"
 
-val commonLibraryProjectSettings = List(
-  scalaVersion := scala212,
-  crossScalaVersions := supportedScalaVersions
+inThisBuild(
+  List(
+    crossScalaVersions := supportedScalaVersions,
+    description := "Scala2PlantUML generates PlantUML diagrams from Scala code.",
+    homepage := Some(url("https://github.com/BotTech/scala2plantuml")),
+    licenses := List("MIT" -> url("https://github.com/BotTech/scala2plantuml/blob/main/LICENSE")),
+    organization := "nz.co.bottech",
+    organizationName := "BotTech",
+    githubWorkflowPublish := List(
+      WorkflowStep.Sbt(
+        List("ci-release"),
+        env = Map(
+          "PGP_PASSPHRASE"    -> "${{ secrets.PGP_PASSPHRASE }}",
+          "PGP_SECRET"        -> "${{ secrets.PGP_SECRET }}",
+          "SONATYPE_PASSWORD" -> "${{ secrets.SONATYPE_PASSWORD }}",
+          "SONATYPE_USERNAME" -> "${{ secrets.SONATYPE_USERNAME }}"
+        )
+      )
+    ),
+    githubWorkflowPublishTargetBranches := List(RefPredicate.StartsWith(Ref.Tag("v"))),
+    githubWorkflowTargetTags ++= Seq("v*")
+  )
 )
 
+val commonProjectSettings = List(
+  mimaPreviousArtifacts := previousStableVersion.value.map(organization.value %% moduleName.value % _).toSet
+)
+
+val metaProjectSettings = List(
+  crossScalaVersions := Nil,
+  publish / skip := true,
+  mimaFailOnNoPrevious := false
+)
+
+val libraryProjectSettings = commonProjectSettings
+
+lazy val root = (project in file("."))
+  .aggregate(cli, core, docs, sbtProject)
+  .settings(metaProjectSettings)
+  .settings(
+    crossScalaVersions := supportedScalaVersions,
+    name := "scala2plantuml"
+  )
+
 lazy val core = project
-  .settings(commonLibraryProjectSettings: _*)
+  .settings(libraryProjectSettings)
   .settings(
     name := s"${(LocalRootProject / name).value}",
     // Required for testing.
@@ -48,22 +74,30 @@ lazy val core = project
 lazy val cli = project
   .dependsOn(core)
   .enablePlugins(BuildInfoPlugin)
-  .settings(commonLibraryProjectSettings: _*)
+  .settings(libraryProjectSettings)
   .settings(
-    name := s"${(LocalRootProject / name).value}-cli",
+    buildInfoKeys := Seq[BuildInfoKey](version),
+    buildInfoPackage := s"${organization.value}.${(LocalRootProject / name).value}",
     libraryDependencies ++= List(
       "ch.qos.logback"    % "logback-classic" % logbackVersion,
       "ch.qos.logback"    % "logback-core"    % logbackVersion,
       "com.github.scopt" %% "scopt"           % scoptVersion
     ),
-    buildInfoKeys := Seq[BuildInfoKey](version),
-    buildInfoPackage := s"${organization.value}.${(LocalRootProject / name).value}"
+    name := s"${(LocalRootProject / name).value}-cli"
   )
 
-lazy val sbtPluginProject = (project in file("sbt"))
+lazy val sbtProject = (project in file("sbt"))
   .dependsOn(core)
   .enablePlugins(SbtPlugin)
+  .settings(commonProjectSettings)
   .settings(
+    skip := {
+      CrossVersion.partialVersion((core / scalaVersion).value) match {
+        case Some((2, n)) if n == 13 => true
+        case _                       => false
+      }
+    },
+    crossScalaVersions := Nil,
     name := s"sbt-${(LocalRootProject / name).value}",
     scriptedBufferLog := false,
     scriptedDependencies := {
@@ -75,6 +109,7 @@ lazy val sbtPluginProject = (project in file("sbt"))
 
 lazy val docs = (project in file("doc-templates"))
   .enablePlugins(MdocPlugin)
+  .settings(metaProjectSettings)
   .settings(
     mdocVariables := Map(
       "VERSION" -> version.value
