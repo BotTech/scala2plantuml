@@ -1,3 +1,4 @@
+import explicitdeps.ModuleFilter
 import sbt.Def
 
 val scala212               = "2.12.13"
@@ -169,7 +170,12 @@ lazy val docs = (project in file("doc-templates"))
     mdocOut := (ThisBuild / baseDirectory).value,
     mdocVariables := Map(
       "VERSION" -> version.value
-    )
+    ),
+    unusedCompileDependenciesFilter -= new ModuleFilter {
+      override def apply(a: ModuleID) = {
+        moduleFilter("org.scalameta", "mdoc_2.12.12").apply(a)
+      }
+    }
   )
 
 def isScala213Setting: Def.Initialize[Boolean] = Def.setting {
