@@ -84,6 +84,8 @@ inThisBuild(
 
 val commonProjectSettings = List(
   isScala213 := isScala213Setting.value,
+  // TODO: Remove this after the first release.
+  mimaFailOnNoPrevious := false,
   mimaPreviousArtifacts := previousStableVersion.value.map(organization.value %% moduleName.value % _).toSet,
   scalastyleFailOnError := true,
   scalastyleFailOnWarning := true,
@@ -193,7 +195,7 @@ lazy val docs = (project in file("doc-templates"))
     },
     mdocOut := (ThisBuild / baseDirectory).value,
     mdocVariables := Map(
-      "VERSION" -> version.value
+      "VERSION" -> previousStableVersion.value.getOrElse(version.value)
     ),
     unusedCompileDependenciesFilter -= new ModuleFilter {
 
