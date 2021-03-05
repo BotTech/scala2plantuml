@@ -69,7 +69,7 @@ inThisBuild(
       WorkflowStep.Sbt(
         List("scripted"),
         name = Some("Build and test sbt plugin"),
-        cond = Some(s"""$${{ matrix.scala == $scala212 }}""")
+        cond = Some(s"""matrix.scala == '$scala212'""")
       )
     ),
     githubWorkflowPublish := List(
@@ -88,7 +88,7 @@ inThisBuild(
     // This needs to be set otherwise the GitHub workflow plugin gets confused about which
     // version to use for the publish job.
     scalaVersion := scala212,
-    versionPolicyFirstVersion := Some("0.1.3"),
+    versionPolicyFirstVersion := Some("0.1.4"),
     versionPolicyIntention := Compatibility.BinaryAndSourceCompatible,
     versionScheme := Some("early-semver")
   )
