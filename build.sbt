@@ -69,7 +69,7 @@ inThisBuild(
       WorkflowStep.Sbt(
         List("scripted"),
         name = Some("Build and test sbt plugin"),
-        cond = Some(s"""$${{ matrix.scala == "$scala212" }}""")
+        cond = Some(s"""$${{ matrix.scala == $scala212 }}""")
       )
     ),
     githubWorkflowPublish := List(

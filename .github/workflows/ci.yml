@@ -68,7 +68,7 @@ jobs:
         run: sbt ++${{ matrix.scala }} test
 
       - name: Build and test sbt plugin
-        if: ${{ matrix.scala == "2.12.13" }}
+        if: ${{ matrix.scala == 2.12.13 }}
         run: sbt ++${{ matrix.scala }} scripted
 
       - name: Compress target directories
