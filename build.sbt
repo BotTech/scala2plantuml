@@ -77,6 +77,7 @@ inThisBuild(
     ),
     githubWorkflowPublishTargetBranches := List(RefPredicate.StartsWith(Ref.Tag("v"))),
     githubWorkflowTargetTags ++= Seq("v*"),
+    versionPolicyFirstVersion := Some("0.1.1"),
     versionPolicyIntention := Compatibility.BinaryAndSourceCompatible,
     versionScheme := Some("early-semver")
   )
@@ -84,9 +85,6 @@ inThisBuild(
 
 val commonProjectSettings = List(
   isScala213 := isScala213Setting.value,
-  // TODO: Remove this after the first release.
-  mimaFailOnNoPrevious := false,
-  mimaPreviousArtifacts := previousStableVersion.value.map(organization.value %% moduleName.value % _).toSet,
   scalastyleFailOnError := true,
   scalastyleFailOnWarning := true,
   // Workaround for https://github.com/cb372/sbt-explicit-dependencies/issues/97
@@ -104,7 +102,8 @@ val commonProjectSettings = List(
 val metaProjectSettings = List(
   crossScalaVersions := Nil,
   publish / skip := true,
-  mimaFailOnNoPrevious := false
+  mimaFailOnNoPrevious := false,
+  mimaPreviousArtifacts := Set.empty
 )
 
 val libraryProjectSettings = commonProjectSettings
@@ -195,7 +194,9 @@ lazy val docs = (project in file("doc-templates"))
     },
     mdocOut := (ThisBuild / baseDirectory).value,
     mdocVariables := Map(
-      "VERSION" -> previousStableVersion.value.getOrElse(version.value)
+      // This is configured for GitHub where we want to show the previous version.
+      // After a release we need to update the docs and do a git push.
+      "VERSION" -> versionPolicyPreviousVersions.value.lastOption.getOrElse(versionPolicyFirstVersion.value.get)
     ),
     unusedCompileDependenciesFilter -= new ModuleFilter {
 
