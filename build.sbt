@@ -1,4 +1,3 @@
-import explicitdeps.ModuleFilter
 import sbt.Def
 
 val scala212               = "2.12.13"
@@ -11,21 +10,25 @@ val scoptVersion                        = "4.0.0"
 val slf4jVersion                        = "1.7.30"
 val utestVersion                        = "0.7.7"
 
+val checkTasks = List(
+  "scalafmtCheckAll",
+  "scalastyle",
+  "versionPolicyCheck",
+  "githubWorkflowCheck",
+  "mdocCheck",
+  "evicted",
+  "undeclaredCompileDependenciesTest",
+  "unusedCompileDependenciesTest",
+  "dependencyCheckAggregate",
+  "test",
+  "scripted"
+)
+
 addCommandAlias(
   "check",
-  List(
-    "scalafmtCheckAll",
-    "scalastyle",
-    "+versionPolicyCheck",
-    "+githubWorkflowCheck",
-    "mdocCheck",
-    "evicted",
-    "+undeclaredCompileDependenciesTest",
-    "+unusedCompileDependenciesTest",
-    "+dependencyCheckAggregate",
-    "+test",
-    "scripted"
-  ).mkString("; ")
+  supportedScalaVersions.flatMap { version =>
+    s"++$version" :: checkTasks.filterNot(_ == "scripted" && version == scala213)
+  }.mkString("; ")
 )
 
 addCommandAlias(
@@ -62,7 +65,12 @@ inThisBuild(
         ),
         name = Some("Check dependencies")
       ),
-      WorkflowStep.Sbt(List("test", "scripted"), name = Some("Build and test"))
+      WorkflowStep.Sbt(List("test"), name = Some("Build and test")),
+      WorkflowStep.Sbt(
+        List("scripted"),
+        name = Some("Build and test sbt plugin"),
+        cond = Some(s"""$${{ matrix.scala == "$scala212" }}""")
+      )
     ),
     githubWorkflowPublish := List(
       WorkflowStep.Sbt(
@@ -77,7 +85,10 @@ inThisBuild(
     ),
     githubWorkflowPublishTargetBranches := List(RefPredicate.StartsWith(Ref.Tag("v"))),
     githubWorkflowTargetTags ++= Seq("v*"),
-    versionPolicyFirstVersion := Some("0.1.1"),
+    // This needs to be set otherwise the GitHub workflow plugin gets confused about which
+    // version to use for the publish job.
+    scalaVersion := scala212,
+    versionPolicyFirstVersion := Some("0.1.2"),
     versionPolicyIntention := Compatibility.BinaryAndSourceCompatible,
     versionScheme := Some("early-semver")
   )
@@ -101,9 +112,9 @@ val commonProjectSettings = List(
 
 val metaProjectSettings = List(
   crossScalaVersions := Nil,
-  publish / skip := true,
   mimaFailOnNoPrevious := false,
-  mimaPreviousArtifacts := Set.empty
+  mimaPreviousArtifacts := Set.empty,
+  publish / skip := true
 )
 
 val libraryProjectSettings = commonProjectSettings
@@ -158,22 +169,27 @@ lazy val sbtProject = (project in file("sbt"))
   .enablePlugins(SbtPlugin)
   .settings(commonProjectSettings)
   .settings(
-    libraryDependencies ++= collectionsCompatibilityDependency.value,
-    libraryDependencies ++= List(
-      "org.scala-sbt" %% "collections"            % sbtVersion.value,
-      "org.scala-sbt" %% "command"                % sbtVersion.value,
-      "org.scala-sbt"  % "compiler-interface"     % "1.4.4",
-      "org.scala-sbt" %% "completion"             % sbtVersion.value,
-      "org.scala-sbt" %% "core-macros"            % sbtVersion.value,
-      "org.scala-sbt" %% "io"                     % "1.4.0",
-      "org.scala-sbt" %% "librarymanagement-core" % "1.4.3",
-      "org.scala-sbt" %% "main"                   % sbtVersion.value,
-      "org.scala-sbt" %% "main-settings"          % sbtVersion.value,
-      "org.scala-sbt"  % "sbt"                    % sbtVersion.value,
-      "org.scala-sbt" %% "task-system"            % sbtVersion.value,
-      "org.scala-sbt" %% "util-logging"           % sbtVersion.value,
-      "org.scala-sbt" %% "util-position"          % sbtVersion.value
-    ),
+    libraryDependencies ++= {
+      // Don't add dependencies when the rest of the build is cross building with Scala 2.13
+      // otherwise it will cause a whole lot of resolution failures.
+      if ((core / isScala213).value) Nil
+      else
+        collectionsCompatibilityDependency.value ++ List(
+          "org.scala-sbt" %% "collections"            % sbtVersion.value,
+          "org.scala-sbt" %% "command"                % sbtVersion.value,
+          "org.scala-sbt"  % "compiler-interface"     % "1.4.4",
+          "org.scala-sbt" %% "completion"             % sbtVersion.value,
+          "org.scala-sbt" %% "core-macros"            % sbtVersion.value,
+          "org.scala-sbt" %% "io"                     % "1.4.0",
+          "org.scala-sbt" %% "librarymanagement-core" % "1.4.3",
+          "org.scala-sbt" %% "main"                   % sbtVersion.value,
+          "org.scala-sbt" %% "main-settings"          % sbtVersion.value,
+          "org.scala-sbt"  % "sbt"                    % sbtVersion.value,
+          "org.scala-sbt" %% "task-system"            % sbtVersion.value,
+          "org.scala-sbt" %% "util-logging"           % sbtVersion.value,
+          "org.scala-sbt" %% "util-position"          % sbtVersion.value
+        )
+    },
     name := s"sbt-${(LocalRootProject / name).value}",
     scriptedBufferLog := false,
     scriptedDependencies := {
@@ -198,11 +214,7 @@ lazy val docs = (project in file("doc-templates"))
       // After a release we need to update the docs and do a git push.
       "VERSION" -> versionPolicyPreviousVersions.value.lastOption.getOrElse(versionPolicyFirstVersion.value.get)
     ),
-    unusedCompileDependenciesFilter -= new ModuleFilter {
-
-      override def apply(a: ModuleID) =
-        moduleFilter("org.scalameta", "mdoc_2.12.12").apply(a)
-    }
+    unusedCompileDependenciesFilter -= moduleFilter("org.scalameta", "mdoc*")
   )
 
 def isScala213Setting: Def.Initialize[Boolean] = Def.setting {

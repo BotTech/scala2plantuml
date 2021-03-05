@@ -65,7 +65,11 @@ jobs:
         run: sbt ++${{ matrix.scala }} evicted undeclaredCompileDependenciesTest unusedCompileDependenciesTest dependencyCheckAggregate
 
       - name: Build and test
-        run: sbt ++${{ matrix.scala }} test scripted
+        run: sbt ++${{ matrix.scala }} test
+
+      - name: Build and test sbt plugin
+        if: ${{ matrix.scala == "2.12.13" }}
+        run: sbt ++${{ matrix.scala }} scripted
 
       - name: Compress target directories
         run: tar cf targets.tar sbt/target target doc-templates/target cli/target core/target project/target
@@ -83,7 +87,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        scala: [2.12.12]
+        scala: [2.12.13]
         java: [adopt@1.8]
     runs-on: ${{ matrix.os }}
     steps:
