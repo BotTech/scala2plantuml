@@ -85,10 +85,11 @@ inThisBuild(
     ),
     githubWorkflowPublishTargetBranches := List(RefPredicate.StartsWith(Ref.Tag("v"))),
     githubWorkflowTargetTags ++= Seq("v*"),
+    pgpSigningKey := Some("0x8DB7DFA142551359!"),
     // This needs to be set otherwise the GitHub workflow plugin gets confused about which
     // version to use for the publish job.
     scalaVersion := scala212,
-    versionPolicyFirstVersion := Some("0.1.4"),
+    versionPolicyFirstVersion := Some("0.1.5"),
     versionPolicyIntention := Compatibility.BinaryAndSourceCompatible,
     versionScheme := Some("early-semver")
   )
