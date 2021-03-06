@@ -1,5 +1,8 @@
 # Scala2PlantUML
 
+[![Continuous Integration](https://github.com/BotTech/scala2plantuml/actions/workflows/ci.yml/badge.svg)](https://github.com/BotTech/scala2plantuml/actions/workflows/ci.yml)
+![Scala2PlantUML Version](https://img.shields.io/maven-central/v/nz.co.bottech/scala2plantuml_2.13?label=Scala2PlantUML)
+
 Scala2PlantUML generates [PlantUML] diagrams from Scala code.
 
 It comes as a standalone library, a CLI tool and an sbt plugin.

@@ -1,5 +1,8 @@
 # Scala2PlantUML
 
+[![Continuous Integration](https://github.com/BotTech/scala2plantuml/actions/workflows/ci.yml/badge.svg)](https://github.com/BotTech/scala2plantuml/actions/workflows/ci.yml)
+![Scala2PlantUML Version](https://img.shields.io/maven-central/v/nz.co.bottech/scala2plantuml_2.13?label=Scala2PlantUML)
+
 Scala2PlantUML generates [PlantUML] diagrams from Scala code.
 
 It comes as a standalone library, a CLI tool and an sbt plugin.
@@ -33,7 +36,7 @@ For most use cases you should add Scala2PlantUML as a global plugin since your b
 Create `~/.sbt/1.0/plugins/scala2PlantUML.sbt` containing:
 
 ```text
-addSbtPlugin("nz.co.bottech" % "sbt-scala2plantuml" % "0.1.5")
+addSbtPlugin("nz.co.bottech" % "sbt-scala2plantuml" % "0.1.6")
 ```
 
 ## CLI
@@ -49,7 +52,7 @@ cs install --channel https://git.io/Jqv1i scala2plantuml
 ### Usage
 
 ```text
-Scala2PlantUML version 0.1.5
+Scala2PlantUML version 0.1.6
 Usage: scala2plantuml [options] symbol
 
 Scala2PlantUML generates PlantUML Class Diagrams from Scala SemanticDB files.
