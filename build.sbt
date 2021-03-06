@@ -39,6 +39,9 @@ addCommandAlias(
 
 val isScala213 = settingKey[Boolean]("Checks if the current Scala version is 2.13")
 
+Global / sonatypeCredentialHost := "s01.oss.sonatype.org"
+Global / sonatypeRepository := "https://s01.oss.sonatype.org/service/local"
+
 inThisBuild(
   List(
     crossScalaVersions := supportedScalaVersions,
@@ -87,7 +90,7 @@ inThisBuild(
     // This needs to be set otherwise the GitHub workflow plugin gets confused about which
     // version to use for the publish job.
     scalaVersion := scala212,
-    versionPolicyFirstVersion := Some("0.1.6"),
+    versionPolicyFirstVersion := Some("0.1.7"),
     versionPolicyIntention := Compatibility.BinaryAndSourceCompatible,
     versionScheme := Some("early-semver")
   )
@@ -97,8 +100,6 @@ val commonProjectSettings = List(
   isScala213 := isScala213Setting.value,
   scalastyleFailOnError := true,
   scalastyleFailOnWarning := true,
-  sonatypeCredentialHost := "s01.oss.sonatype.org",
-  sonatypeRepository := "https://s01.oss.sonatype.org/service/local",
   // Workaround for https://github.com/cb372/sbt-explicit-dependencies/issues/97
   undeclaredCompileDependenciesFilter -= moduleFilter("com.thesamet.scalapb", "scalapb-runtime"),
   Compile / compile / wartremoverErrors := {
