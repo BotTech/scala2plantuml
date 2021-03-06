@@ -87,13 +87,19 @@ inThisBuild(
     // This needs to be set otherwise the GitHub workflow plugin gets confused about which
     // version to use for the publish job.
     scalaVersion := scala212,
-    versionPolicyFirstVersion := Some("0.1.8"),
+    versionPolicyFirstVersion := Some("0.1.9"),
     versionPolicyIntention := Compatibility.BinaryAndSourceCompatible,
     versionScheme := Some("early-semver")
   )
 )
 
-val commonProjectSettings = List(
+val sonatypeSettings = List(
+  // Workaround for https://github.com/olafurpg/sbt-ci-release/issues/181
+  sonatypeCredentialHost := "s01.oss.sonatype.org",
+  sonatypeRepository := "https://s01.oss.sonatype.org/service/local"
+)
+
+val commonProjectSettings = sonatypeSettings ++ List(
   isScala213 := isScala213Setting.value,
   scalastyleFailOnError := true,
   scalastyleFailOnWarning := true,
@@ -121,12 +127,11 @@ val libraryProjectSettings = commonProjectSettings
 lazy val root = (project in file("."))
   .aggregate(cli, core, docs, sbtProject)
   .settings(metaProjectSettings)
+  // The sbt-sonatype plugin requires these to go on the root project too.
+  .settings(sonatypeSettings)
   .settings(
     crossScalaVersions := supportedScalaVersions,
     name := "scala2plantuml",
-    // Workaround for https://github.com/olafurpg/sbt-ci-release/issues/181
-    sonatypeCredentialHost := "s01.oss.sonatype.org",
-    sonatypeRepository := "https://s01.oss.sonatype.org/service/local"
   )
 
 lazy val core = project
