@@ -70,6 +70,9 @@ inThisBuild(
         cond = Some(s"""matrix.scala == '$scala212'""")
       )
     ),
+    // The first of these is the version for the publish job which has to be 9+
+    // because of https://github.com/xerial/sbt-sonatype/issues/216
+    githubWorkflowJavaVersions := List("adopt@1.11", "adopt@1.8"),
     githubWorkflowPublish := List(
       WorkflowStep.Sbt(
         List("ci-release"),
@@ -87,7 +90,7 @@ inThisBuild(
     // This needs to be set otherwise the GitHub workflow plugin gets confused about which
     // version to use for the publish job.
     scalaVersion := scala212,
-    versionPolicyFirstVersion := Some("0.1.10"),
+    versionPolicyFirstVersion := Some("0.1.11"),
     versionPolicyIntention := Compatibility.BinaryAndSourceCompatible,
     versionScheme := Some("early-semver")
   )
