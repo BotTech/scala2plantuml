@@ -5,6 +5,7 @@ val supportedScalaVersions = List(scala212, scala213)
 val logbackVersion                      = "1.2.3"
 val scalaCollectionCompatibilityVersion = "2.3.2"
 val scoptVersion                        = "4.0.0"
+val sdbVersion                          = "4.4.10"
 val slf4jVersion                        = "1.7.30"
 val utestVersion                        = "0.7.7"
 
@@ -107,10 +108,8 @@ val metaProjectSettings = List(
   publish / skip := true
 )
 
-val libraryProjectSettings = commonProjectSettings
-
 lazy val root = (project in file("."))
-  .aggregate(cli, core, docs, sbtProject)
+  .aggregate(cli, core, docs, example, sbtProject)
   .settings(metaProjectSettings)
   .settings(
     crossScalaVersions := supportedScalaVersions,
@@ -122,7 +121,7 @@ lazy val root = (project in file("."))
   )
 
 lazy val core = project
-  .settings(libraryProjectSettings)
+  .settings(commonProjectSettings)
   .settings(
     libraryDependencies ++= collectionsCompatibilityDependency.value,
     libraryDependencies ++= List(
@@ -135,7 +134,7 @@ lazy val core = project
     ),
     name := s"${(LocalRootProject / name).value}",
     semanticdbEnabled := true,
-    semanticdbVersion := "4.4.10",
+    semanticdbVersion := sdbVersion,
     testFrameworks += new TestFramework("utest.runner.Framework"),
     Test / managedSourceDirectories += (Test / semanticdbTargetRoot).value,
     Test / fullClasspath += (Test / semanticdbTargetRoot).value
@@ -144,7 +143,7 @@ lazy val core = project
 lazy val cli = project
   .dependsOn(core)
   .enablePlugins(BuildInfoPlugin)
-  .settings(libraryProjectSettings)
+  .settings(commonProjectSettings)
   .settings(
     buildInfoKeys := Seq[BuildInfoKey](version),
     buildInfoPackage := s"${organization.value}.${(LocalRootProject / name).value}",
@@ -209,6 +208,15 @@ lazy val docs = (project in file("doc-templates"))
       "VERSION" -> versionPolicyPreviousVersions.value.lastOption.getOrElse(versionPolicyFirstVersion.value.get)
     ),
     unusedCompileDependenciesFilter -= moduleFilter("org.scalameta", "mdoc*")
+  )
+
+lazy val example = project
+  .settings(commonProjectSettings)
+  .settings(
+    semanticdbEnabled := true,
+    semanticdbIncludeInJar := true,
+    semanticdbVersion := sdbVersion,
+    versionPolicyFirstVersion := Some("0.1.13"),
   )
 
 def isScala213Setting: Def.Initialize[Boolean] = Def.setting {

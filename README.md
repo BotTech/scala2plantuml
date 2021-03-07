@@ -11,12 +11,6 @@ It comes as a standalone library, a CLI tool and an sbt plugin.
 Scala2PlantUML consumes [SemanticDB] files so you will need to know how to create those or simply follow the sbt setup
 instructions below.
 
-Example:
-
-```shell mdoc
-scala2PlantUML
-```
-
 ## sbt
 
 ### Enable SemanticDB
