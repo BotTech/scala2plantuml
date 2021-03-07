@@ -8,25 +8,26 @@ val scoptVersion                        = "4.0.0"
 val slf4jVersion                        = "1.7.30"
 val utestVersion                        = "0.7.7"
 
-val checkTasks = List(
-  "scalafmtCheckAll",
-  "scalastyle",
-  "versionPolicyCheck",
-  "githubWorkflowCheck",
-  "mdocCheck",
-  "evicted",
-  "undeclaredCompileDependenciesTest",
-  "unusedCompileDependenciesTest",
-  "dependencyCheckAggregate",
-  "test",
-  "scripted"
+addCommandAlias(
+  "devCheck",
+  supportedScalaVersions.flatMap { version =>
+    s"++$version" :: "check" :: (if (version == scala213) Nil else List("scripted"))
+  }.mkString(";")
 )
 
 addCommandAlias(
   "check",
-  supportedScalaVersions.flatMap { version =>
-    s"++$version" :: checkTasks.filterNot(_ == "scripted" && version == scala213)
-  }.mkString("; ")
+  List(
+    "scalafmtCheckAll",
+    "scalastyle",
+    "versionPolicyCheck",
+    "mdocCheck",
+    "evicted",
+    "undeclaredCompileDependenciesTest",
+    "unusedCompileDependenciesTest",
+    "dependencyCheckAggregate",
+    "test"
+  ).mkString(";")
 )
 
 addCommandAlias(
@@ -58,19 +59,7 @@ inThisBuild(
     organization := "nz.co.bottech",
     organizationName := "BotTech",
     githubWorkflowBuild := List(
-      WorkflowStep.Sbt(List("scalafmtCheckAll", "scalastyle"), name = Some("Check formatting and style")),
-      WorkflowStep.Sbt(List("versionPolicyCheck"), name = Some("Check version adheres to the policy")),
-      WorkflowStep.Sbt(List("mdocCheck"), name = Some("Check documentation has been generated")),
-      WorkflowStep.Sbt(
-        List(
-          "evicted",
-          "undeclaredCompileDependenciesTest",
-          "unusedCompileDependenciesTest",
-          "dependencyCheckAggregate"
-        ),
-        name = Some("Check dependencies")
-      ),
-      WorkflowStep.Sbt(List("test"), name = Some("Build and test")),
+      WorkflowStep.Sbt(List("check"), name = Some("Build, test and check libraries")),
       WorkflowStep.Sbt(
         List("scripted"),
         name = Some("Build and test sbt plugin"),
