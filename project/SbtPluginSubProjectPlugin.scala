@@ -23,8 +23,6 @@ object SbtPluginSubProjectPlugin extends AutoPlugin {
   override def projectSettings: Seq[Def.Setting[_]] =
     List(
       crossScalaVersions := Nil,
-      // Remove all library dependencies for Scala 2.13 as they will not resolve when cross building.
-//      libraryDependencies := defaultIfCannotBuild(libraryDependencies, Nil).value,
       // Remove all project dependencies for Scala 2.13 as they will not resolve when cross building.
       projectDependencies := taskDefaultIfSkipped(projectDependencies, Nil).value,
       scripted := inputDefaultIfSkipped(scripted, ()).evaluated,
