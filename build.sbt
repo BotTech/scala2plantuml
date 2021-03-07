@@ -11,7 +11,7 @@ val utestVersion                        = "0.7.7"
 addCommandAlias(
   "devCheck",
   supportedScalaVersions.flatMap { version =>
-    s"++$version" :: "check" :: (if (version == scala213) Nil else List("scripted"))
+    s"++$version" :: "githubWorkflowCheck" :: "check" :: (if (version == scala213) Nil else List("scripted"))
   }.mkString(";")
 )
 
@@ -166,7 +166,7 @@ lazy val sbtProject = (project in file("sbt"))
     libraryDependencies ++= {
       // Only add dependencies when the build is building with a Scala version that is
       // sbt compatible otherwise it will cause a whole lot of resolution failures.
-      if (spspIsSbtCompatibleScalaVersion.value)
+      if (spspCanBuild.value)
         collectionsCompatibilityDependency.value ++ List(
           "org.scala-sbt" %% "collections"            % sbtVersion.value,
           "org.scala-sbt" %% "command"                % sbtVersion.value,
