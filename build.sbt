@@ -44,6 +44,13 @@ inThisBuild(
     crossScalaVersions := supportedScalaVersions,
     dependencyCheckAssemblyAnalyzerEnabled := Some(false),
     description := "Scala2PlantUML generates PlantUML diagrams from Scala code.",
+    // We have to have this otherwise the release fails.
+    developers += Developer(
+      "steinybot",
+      "Jason Pickens",
+      "jasonpickensnz@gmail.com",
+      url("https://github.com/steinybot")
+    ),
     // TODO: Add this when sbt 1.5.0 is released.
     // evictionErrorLevel := Level.Error,
     homepage := Some(url("https://github.com/BotTech/scala2plantuml")),
@@ -90,7 +97,7 @@ inThisBuild(
     // This needs to be set otherwise the GitHub workflow plugin gets confused about which
     // version to use for the publish job.
     scalaVersion := scala212,
-    versionPolicyFirstVersion := Some("0.1.11"),
+    versionPolicyFirstVersion := Some("0.1.12"),
     versionPolicyIntention := Compatibility.BinaryAndSourceCompatible,
     versionScheme := Some("early-semver")
   )
