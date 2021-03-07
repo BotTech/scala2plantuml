@@ -164,10 +164,9 @@ lazy val sbtProject = (project in file("sbt"))
   .settings(commonProjectSettings)
   .settings(
     libraryDependencies ++= {
-      // Don't add dependencies when the rest of the build is cross building with Scala 2.13
-      // otherwise it will cause a whole lot of resolution failures.
-      if ((core / isScala213).value) Nil
-      else
+      // Only add dependencies when the build is building with a Scala version that is
+      // sbt compatible otherwise it will cause a whole lot of resolution failures.
+      if (spspIsSbtCompatibleScalaVersion.value)
         collectionsCompatibilityDependency.value ++ List(
           "org.scala-sbt" %% "collections"            % sbtVersion.value,
           "org.scala-sbt" %% "command"                % sbtVersion.value,
@@ -183,6 +182,7 @@ lazy val sbtProject = (project in file("sbt"))
           "org.scala-sbt" %% "util-logging"           % sbtVersion.value,
           "org.scala-sbt" %% "util-position"          % sbtVersion.value
         )
+      else Nil
     },
     name := s"sbt-${(LocalRootProject / name).value}",
     scriptedBufferLog := false,
