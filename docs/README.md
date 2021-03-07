@@ -1,7 +1,8 @@
 # Scala2PlantUML
 
-[![Continuous Integration](https://github.com/BotTech/scala2plantuml/actions/workflows/ci.yml/badge.svg)](https://github.com/BotTech/scala2plantuml/actions/workflows/ci.yml)
-![Scala2PlantUML Version](https://img.shields.io/maven-central/v/nz.co.bottech/scala2plantuml_2.13?label=Scala2PlantUML)
+[![Build badge](https://img.shields.io/github/workflow/status/BotTech/scala2plantuml/Continuous%20Integration/main)](https://github.com/BotTech/scala2plantuml/actions/workflows/ci.yml)
+[![Maven-Central badge](https://img.shields.io/maven-central/v/nz.co.bottech/scala2plantuml_2.13)](https://search.maven.org/search?q=g:nz.co.bottech%20a:*scala2plantuml*)
+[![Scala Steward badge](https://img.shields.io/badge/Scala_Steward-helping-blue.svg?style=flat&logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAA4AAAAQCAMAAAARSr4IAAAAVFBMVEUAAACHjojlOy5NWlrKzcYRKjGFjIbp293YycuLa3pYY2LSqql4f3pCUFTgSjNodYRmcXUsPD/NTTbjRS+2jomhgnzNc223cGvZS0HaSD0XLjbaSjElhIr+AAAAAXRSTlMAQObYZgAAAHlJREFUCNdNyosOwyAIhWHAQS1Vt7a77/3fcxxdmv0xwmckutAR1nkm4ggbyEcg/wWmlGLDAA3oL50xi6fk5ffZ3E2E3QfZDCcCN2YtbEWZt+Drc6u6rlqv7Uk0LdKqqr5rk2UCRXOk0vmQKGfc94nOJyQjouF9H/wCc9gECEYfONoAAAAASUVORK5CYII=)](https://scala-steward.org)
 
 Scala2PlantUML generates [PlantUML] diagrams from Scala code.
 
@@ -52,6 +53,7 @@ cs install --channel https://git.io/Jqv1i scala2plantuml
 ### Usage
 
 ```text
+> scala2plantuml --help
 Scala2PlantUML version @VERSION@
 Usage: scala2plantuml [options] symbol
 
