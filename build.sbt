@@ -21,21 +21,13 @@ addCommandAlias(
     "scalafmtCheckAll",
     "scalastyle",
     "versionPolicyCheck",
-    "mdocCheck",
+    "docs/mdoc --check",
     "evicted",
     "undeclaredCompileDependenciesTest",
     "unusedCompileDependenciesTest",
     "dependencyCheckAggregate",
     "test"
   ).mkString(";")
-)
-
-addCommandAlias(
-  "mdocCheck",
-  List(
-    """set docs / mdocExtraArguments += "--check"""",
-    "docs / mdoc"
-  ).mkString("; ")
 )
 
 val isScala213 = settingKey[Boolean]("Checks if the current Scala version is 2.13")
