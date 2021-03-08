@@ -5,18 +5,20 @@ import scala.meta.io.Classpath
 
 object ClassDiagramGenerator {
 
+  @SuppressWarnings(Array("org.wartremover.warts.DefaultArguments"))
   def fromSymbol(
       symbol: String,
       prefixes: Seq[String],
       ignore: String => Boolean,
-      classloader: ClassLoader
+      classloader: ClassLoader,
+      maxLevel: Option[Int] = None
     ): Seq[ClassDiagramElement] = {
     val loader          = new SemanticdbLoader(prefixes, classloader)
     val symbolTable     = aggregateSymbolTable(loader)
     val symbolIndex     = new SymbolIndex(ignore, symbolTable)
     val typeIndex       = new TypeIndex(symbolIndex)
     val definitionIndex = new DefinitionIndex(loader)
-    SymbolProcessor.processSymbol(symbol, symbolIndex, typeIndex, definitionIndex)
+    SymbolProcessor.processSymbol(symbol, maxLevel, symbolIndex, typeIndex, definitionIndex)
   }
 
   private def aggregateSymbolTable(loader: SemanticdbLoader) =

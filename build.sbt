@@ -21,6 +21,7 @@ addCommandAlias(
   List(
     "scalafmtCheckAll",
     "scalastyle",
+    "versionCheck",
     "versionPolicyCheck",
     "docs/mdoc --check",
     "evicted",
@@ -79,7 +80,6 @@ inThisBuild(
     // This needs to be set otherwise the GitHub workflow plugin gets confused about which
     // version to use for the publish job.
     scalaVersion := scala212,
-    versionPolicyFirstVersion := Some("0.1.12"),
     versionPolicyIntention := Compatibility.BinaryAndSourceCompatible,
     versionScheme := Some("early-semver")
   )
@@ -87,6 +87,7 @@ inThisBuild(
 
 val commonProjectSettings = List(
   isScala213 := isScala213Setting.value,
+  name := s"${(LocalRootProject / name).value}-${name.value}",
   scalastyleFailOnError := true,
   scalastyleFailOnWarning := true,
   // Workaround for https://github.com/cb372/sbt-explicit-dependencies/issues/97
@@ -102,7 +103,6 @@ val commonProjectSettings = List(
 )
 
 val metaProjectSettings = List(
-  crossScalaVersions := Nil,
   mimaFailOnNoPrevious := false,
   mimaPreviousArtifacts := Set.empty,
   publish / skip := true
@@ -153,8 +153,7 @@ lazy val cli = project
       "ch.qos.logback"    % "logback-core"    % logbackVersion,
       "com.github.scopt" %% "scopt"           % scoptVersion,
       "org.slf4j"         % "slf4j-api"       % slf4jVersion
-    ),
-    name := s"${(LocalRootProject / name).value}-cli"
+    )
   )
 
 lazy val sbtProject = (project in file("sbt"))
@@ -192,10 +191,17 @@ lazy val sbtProject = (project in file("sbt"))
     scriptedLaunchOpts += s"-Dplugin.version=${version.value}"
   )
 
-lazy val docs = (project in file("doc-templates"))
-  .enablePlugins(MdocPlugin)
+lazy val docs = (project in file("meta/docs"))
+  // Include build info here so that we can override the version.
+  .enablePlugins(BuildInfoPlugin, MdocPlugin)
+  .dependsOn(cli)
   .settings(metaProjectSettings)
   .settings(
+    // We use a different version setting so that it may depend on versionPolicyPreviousVersions
+    // without creating a cycle. This means that we need to map the identifier back so that it
+    // matches the same key used when compiling the build info for the CLI.
+    buildInfoKeys := Seq[BuildInfoKey](BuildInfoKey.map(mdoc / version)({ case (_, value) => "version" -> value })),
+    buildInfoPackage := s"${organization.value}.${(LocalRootProject / name).value}",
     libraryDependencies := libraryDependencies.value.map { module =>
       if (module.name.startsWith("mdoc"))
         module.exclude("io.undertow", "undertow-core").exclude("org.jboss.xnio", "xnio-nio")
@@ -203,11 +209,10 @@ lazy val docs = (project in file("doc-templates"))
     },
     mdocOut := (ThisBuild / baseDirectory).value,
     mdocVariables := Map(
-      // This is configured for GitHub where we want to show the previous version.
-      // After a release we need to update the docs and do a git push.
-      "VERSION" -> versionPolicyPreviousVersions.value.lastOption.getOrElse(versionPolicyFirstVersion.value.get)
+      "VERSION" -> (mdoc / version).value
     ),
-    unusedCompileDependenciesFilter -= moduleFilter("org.scalameta", "mdoc*")
+    unusedCompileDependenciesFilter -= moduleFilter("org.scalameta", "mdoc*"),
+    mdoc / version := versionPolicyPreviousVersions.value.lastOption.getOrElse(version.value)
   )
 
 lazy val example = project
@@ -215,8 +220,7 @@ lazy val example = project
   .settings(
     semanticdbEnabled := true,
     semanticdbIncludeInJar := true,
-    semanticdbVersion := sdbVersion,
-    versionPolicyFirstVersion := Some("0.1.13"),
+    semanticdbVersion := sdbVersion
   )
 
 def isScala213Setting: Def.Initialize[Boolean] = Def.setting {

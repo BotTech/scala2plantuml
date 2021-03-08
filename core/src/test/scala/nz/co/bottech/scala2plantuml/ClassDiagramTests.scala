@@ -12,18 +12,24 @@ trait ClassDiagramTests {
   private def globalSymbol(symbol: String) =
     s"nz/co/bottech/scala2plantuml/examples/$exampleDir/$symbol"
 
-  protected def success(name: String, expected: String, options: Options = testOptions): Unit = {
-    val result = generateFromTopLevel(name, options).trim
+  protected def success(
+      name: String,
+      expected: String,
+      maxLevel: Option[Int] = None,
+      options: Options = testOptions
+    ): Unit = {
+    val result = generateFromTopLevel(name, maxLevel, options).trim
     assert(result == expected)
   }
 
-  protected def generateFromTopLevel(symbol: String, options: Options): String = {
+  protected def generateFromTopLevel(symbol: String, maxLevel: Option[Int], options: Options): String = {
     val elements = ClassDiagramGenerator
       .fromSymbol(
         globalSymbol(symbol),
         List("META-INF/semanticdb/core/src/test/scala"),
         stdLibSymbol,
-        this.getClass.getClassLoader
+        this.getClass.getClassLoader,
+        maxLevel
       )
     ClassDiagramRenderer.renderSnippetString(elements, options)
   }
