@@ -96,7 +96,7 @@ object ClassDiagramRenderer {
   def render(elements: Seq[ClassDiagramElement], options: Options, writer: Writer): Unit = {
     writer.write("@startuml\n")
     renderSnippet(elements, options, writer)
-    writer.write("@enduml\n")
+    writer.write("@enduml")
   }
 
   def renderSnippetString(elements: Seq[ClassDiagramElement], options: Options): String =

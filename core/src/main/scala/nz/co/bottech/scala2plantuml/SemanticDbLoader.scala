@@ -1,5 +1,7 @@
 package nz.co.bottech.scala2plantuml
 
+import nz.co.bottech.scala2plantuml.SemanticDBLoader._
+
 import java.io.{File, FileInputStream, FilenameFilter, InputStream}
 import java.net.URL
 import java.nio.file.Paths
@@ -9,10 +11,7 @@ import scala.meta.internal.semanticdb.Scala._
 import scala.meta.internal.semanticdb.{TextDocument, TextDocuments}
 import scala.util.Using
 
-private[scala2plantuml] class SemanticdbLoader(prefixes: Seq[String], classLoader: ClassLoader) {
-
-  type Errors = Vector[String]
-  type Result = Either[Errors, Seq[TextDocument]]
+private[scala2plantuml] class SemanticDBLoader(prefixes: Seq[String], classLoader: ClassLoader) {
 
   private val cache = TrieMap.empty[String, Result]
 
@@ -78,10 +77,23 @@ private[scala2plantuml] class SemanticdbLoader(prefixes: Seq[String], classLoade
       TextDocuments.parseFrom(semanticdb).documents
     }.toEither.left.map(error => Vector(error.getLocalizedMessage))
 
-  private def semanticdbPath(symbol: String): Either[Errors, String] =
-    if (symbol.isGlobal)
-      Right(s"${symbol.dropRight(1).takeWhile(_ != '#')}.scala.semanticdb")
-    else
+}
+
+private[scala2plantuml] object SemanticDBLoader {
+
+  private type Errors = Vector[String]
+  private type Result = Either[Errors, Seq[TextDocument]]
+
+  private[scala2plantuml] def semanticdbPath(symbol: String): Either[Errors, String] =
+    if (symbol.isGlobal) {
+      val a            = symbol.lastIndexOf('/')
+      val (start, end) = symbol.splitAt(a + 1)
+      val prefix       = if (start == "_empty" || start == "_root_") "" else start
+      val name         = end.takeWhile(c => c != '#' && c != '.')
+      if (name == "package") {
+        Right(s"${prefix.init}.scala.semanticdb")
+      } else Right(s"$prefix$name.scala.semanticdb")
+    } else
       Left(Vector(s"Symbol is not global: $symbol"))
 
   private def packagePath(path: String): Option[String] = {
@@ -91,9 +103,10 @@ private[scala2plantuml] class SemanticdbLoader(prefixes: Seq[String], classLoade
   }
 
   private def findSemanticdbs(directory: File): Array[File] =
-    directory.listFiles(new FilenameFilter {
+    directory
+      .listFiles(new FilenameFilter {
 
-      override def accept(dir: File, name: String): Boolean =
-        name.endsWith(".semanticdb")
-    })
+        override def accept(dir: File, name: String): Boolean =
+          name.endsWith(".semanticdb")
+      })
 }

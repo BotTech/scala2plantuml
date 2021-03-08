@@ -1,19 +1,25 @@
 package nz.co.bottech.scala2plantuml
 
-import scopt.{DefaultOEffectSetup, DefaultOParserSetup, OEffectSetup, OParser, OParserSetup}
+import scopt._
 
 import java.io.File
+import java.net.URI
 
 object ConfigParser {
+
+  final private object Terminated extends RuntimeException
 
   private val parserSetup: OParserSetup = new DefaultOParserSetup {
     override def showUsageOnError: Option[Boolean] = Some(true)
   }
 
   private val effectSetup: OEffectSetup = new DefaultOEffectSetup {
+
     // Don't exit otherwise sbt traps this and there are confusing errors.
     // This is especially troublesome when running this from mdoc.
-    override def terminate(exitState: Either[String, Unit]): Unit = ()
+    @SuppressWarnings(Array("org.wartremover.warts.Throw"))
+    override def terminate(exitState: Either[String, Unit]): Unit =
+      throw Terminated
   }
 
   // scalastyle:off method.length
@@ -99,7 +105,7 @@ object ConfigParser {
       opt[File]('j', "jar")
         .valueName("<jar>")
         .unbounded()
-        .action((jar, config) => config.addDirectory(jar))
+        .action((jar, config) => config.addFile(jar))
         .text(
           """JAR containing META-INF/semanticdb/**/*.semanticdb files.
             |
@@ -108,10 +114,10 @@ object ConfigParser {
             |""".stripMargin
         ),
       note(""),
-      opt[File]('u', "url")
+      opt[URI]('u', "url")
         .valueName("<url>")
         .unbounded()
-        .action((url, config) => config.addDirectory(url))
+        .action((url, config) => config.addURL(url.toURL))
         .text(
           """A URL to a JAR containing META-INF/semanticdb/**/*.semanticdb files.
             |
@@ -218,7 +224,10 @@ object ConfigParser {
   // scalastyle:on method.length
 
   def parse(args: Array[String]): Option[Config] =
-    OParser.parse(parser, args, Config(), parserSetup, effectSetup)
+    try OParser.parse(parser, args, Config(), parserSetup, effectSetup)
+    catch {
+      case Terminated => None
+    }
 
   private def validateConfig(config: Config): Either[String, Unit] =
     if (config.ignore(config.symbol)) Left("Symbol must match include patterns and not match exclude patterns.")
