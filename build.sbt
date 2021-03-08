@@ -5,36 +5,31 @@ val supportedScalaVersions = List(scala212, scala213)
 val logbackVersion                      = "1.2.3"
 val scalaCollectionCompatibilityVersion = "2.3.2"
 val scoptVersion                        = "4.0.0"
+val sdbVersion                          = "4.4.10"
 val slf4jVersion                        = "1.7.30"
 val utestVersion                        = "0.7.7"
 
-val checkTasks = List(
-  "scalafmtCheckAll",
-  "scalastyle",
-  "versionPolicyCheck",
-  "githubWorkflowCheck",
-  "mdocCheck",
-  "evicted",
-  "undeclaredCompileDependenciesTest",
-  "unusedCompileDependenciesTest",
-  "dependencyCheckAggregate",
-  "test",
-  "scripted"
+addCommandAlias(
+  "devCheck",
+  supportedScalaVersions.flatMap { version =>
+    s"++$version" :: "githubWorkflowCheck" :: "check" :: (if (version == scala213) Nil else List("scripted"))
+  }.mkString(";")
 )
 
 addCommandAlias(
   "check",
-  supportedScalaVersions.flatMap { version =>
-    s"++$version" :: checkTasks.filterNot(_ == "scripted" && version == scala213)
-  }.mkString("; ")
-)
-
-addCommandAlias(
-  "mdocCheck",
   List(
-    """set docs / mdocExtraArguments += "--check"""",
-    "docs / mdoc"
-  ).mkString("; ")
+    "scalafmtCheckAll",
+    "scalastyle",
+    "versionCheck",
+    "versionPolicyCheck",
+    "docs/mdoc --check",
+    "evicted",
+    "undeclaredCompileDependenciesTest",
+    "unusedCompileDependenciesTest",
+    "dependencyCheckAggregate",
+    "test"
+  ).mkString(";")
 )
 
 val isScala213 = settingKey[Boolean]("Checks if the current Scala version is 2.13")
@@ -58,19 +53,7 @@ inThisBuild(
     organization := "nz.co.bottech",
     organizationName := "BotTech",
     githubWorkflowBuild := List(
-      WorkflowStep.Sbt(List("scalafmtCheckAll", "scalastyle"), name = Some("Check formatting and style")),
-      WorkflowStep.Sbt(List("versionPolicyCheck"), name = Some("Check version adheres to the policy")),
-      WorkflowStep.Sbt(List("mdocCheck"), name = Some("Check documentation has been generated")),
-      WorkflowStep.Sbt(
-        List(
-          "evicted",
-          "undeclaredCompileDependenciesTest",
-          "unusedCompileDependenciesTest",
-          "dependencyCheckAggregate"
-        ),
-        name = Some("Check dependencies")
-      ),
-      WorkflowStep.Sbt(List("test"), name = Some("Build and test")),
+      WorkflowStep.Sbt(List("check"), name = Some("Build, test and check libraries")),
       WorkflowStep.Sbt(
         List("scripted"),
         name = Some("Build and test sbt plugin"),
@@ -97,7 +80,6 @@ inThisBuild(
     // This needs to be set otherwise the GitHub workflow plugin gets confused about which
     // version to use for the publish job.
     scalaVersion := scala212,
-    versionPolicyFirstVersion := Some("0.1.12"),
     versionPolicyIntention := Compatibility.BinaryAndSourceCompatible,
     versionScheme := Some("early-semver")
   )
@@ -105,6 +87,7 @@ inThisBuild(
 
 val commonProjectSettings = List(
   isScala213 := isScala213Setting.value,
+  name := s"${(LocalRootProject / name).value}-${name.value}",
   scalastyleFailOnError := true,
   scalastyleFailOnWarning := true,
   // Workaround for https://github.com/cb372/sbt-explicit-dependencies/issues/97
@@ -120,16 +103,13 @@ val commonProjectSettings = List(
 )
 
 val metaProjectSettings = List(
-  crossScalaVersions := Nil,
   mimaFailOnNoPrevious := false,
   mimaPreviousArtifacts := Set.empty,
   publish / skip := true
 )
 
-val libraryProjectSettings = commonProjectSettings
-
 lazy val root = (project in file("."))
-  .aggregate(cli, core, docs, sbtProject)
+  .aggregate(cli, core, docs, example, sbtProject)
   .settings(metaProjectSettings)
   .settings(
     crossScalaVersions := supportedScalaVersions,
@@ -141,7 +121,7 @@ lazy val root = (project in file("."))
   )
 
 lazy val core = project
-  .settings(libraryProjectSettings)
+  .settings(commonProjectSettings)
   .settings(
     libraryDependencies ++= collectionsCompatibilityDependency.value,
     libraryDependencies ++= List(
@@ -154,7 +134,7 @@ lazy val core = project
     ),
     name := s"${(LocalRootProject / name).value}",
     semanticdbEnabled := true,
-    semanticdbVersion := "4.4.10",
+    semanticdbVersion := sdbVersion,
     testFrameworks += new TestFramework("utest.runner.Framework"),
     Test / managedSourceDirectories += (Test / semanticdbTargetRoot).value,
     Test / fullClasspath += (Test / semanticdbTargetRoot).value
@@ -163,7 +143,7 @@ lazy val core = project
 lazy val cli = project
   .dependsOn(core)
   .enablePlugins(BuildInfoPlugin)
-  .settings(libraryProjectSettings)
+  .settings(commonProjectSettings)
   .settings(
     buildInfoKeys := Seq[BuildInfoKey](version),
     buildInfoPackage := s"${organization.value}.${(LocalRootProject / name).value}",
@@ -173,8 +153,7 @@ lazy val cli = project
       "ch.qos.logback"    % "logback-core"    % logbackVersion,
       "com.github.scopt" %% "scopt"           % scoptVersion,
       "org.slf4j"         % "slf4j-api"       % slf4jVersion
-    ),
-    name := s"${(LocalRootProject / name).value}-cli"
+    )
   )
 
 lazy val sbtProject = (project in file("sbt"))
@@ -183,10 +162,9 @@ lazy val sbtProject = (project in file("sbt"))
   .settings(commonProjectSettings)
   .settings(
     libraryDependencies ++= {
-      // Don't add dependencies when the rest of the build is cross building with Scala 2.13
-      // otherwise it will cause a whole lot of resolution failures.
-      if ((core / isScala213).value) Nil
-      else
+      // Only add dependencies when the build is building with a Scala version that is
+      // sbt compatible otherwise it will cause a whole lot of resolution failures.
+      if (spspCanBuild.value)
         collectionsCompatibilityDependency.value ++ List(
           "org.scala-sbt" %% "collections"            % sbtVersion.value,
           "org.scala-sbt" %% "command"                % sbtVersion.value,
@@ -202,6 +180,7 @@ lazy val sbtProject = (project in file("sbt"))
           "org.scala-sbt" %% "util-logging"           % sbtVersion.value,
           "org.scala-sbt" %% "util-position"          % sbtVersion.value
         )
+      else Nil
     },
     name := s"sbt-${(LocalRootProject / name).value}",
     scriptedBufferLog := false,
@@ -212,10 +191,17 @@ lazy val sbtProject = (project in file("sbt"))
     scriptedLaunchOpts += s"-Dplugin.version=${version.value}"
   )
 
-lazy val docs = (project in file("doc-templates"))
-  .enablePlugins(MdocPlugin)
+lazy val docs = (project in file("meta/docs"))
+  // Include build info here so that we can override the version.
+  .enablePlugins(BuildInfoPlugin, MdocPlugin)
+  .dependsOn(cli)
   .settings(metaProjectSettings)
   .settings(
+    // We use a different version setting so that it may depend on versionPolicyPreviousVersions
+    // without creating a cycle. This means that we need to map the identifier back so that it
+    // matches the same key used when compiling the build info for the CLI.
+    buildInfoKeys := Seq[BuildInfoKey](BuildInfoKey.map(mdoc / version)({ case (_, value) => "version" -> value })),
+    buildInfoPackage := s"${organization.value}.${(LocalRootProject / name).value}",
     libraryDependencies := libraryDependencies.value.map { module =>
       if (module.name.startsWith("mdoc"))
         module.exclude("io.undertow", "undertow-core").exclude("org.jboss.xnio", "xnio-nio")
@@ -223,11 +209,18 @@ lazy val docs = (project in file("doc-templates"))
     },
     mdocOut := (ThisBuild / baseDirectory).value,
     mdocVariables := Map(
-      // This is configured for GitHub where we want to show the previous version.
-      // After a release we need to update the docs and do a git push.
-      "VERSION" -> versionPolicyPreviousVersions.value.lastOption.getOrElse(versionPolicyFirstVersion.value.get)
+      "VERSION" -> (mdoc / version).value
     ),
-    unusedCompileDependenciesFilter -= moduleFilter("org.scalameta", "mdoc*")
+    unusedCompileDependenciesFilter -= moduleFilter("org.scalameta", "mdoc*"),
+    mdoc / version := versionPolicyPreviousVersions.value.lastOption.getOrElse(version.value)
+  )
+
+lazy val example = project
+  .settings(commonProjectSettings)
+  .settings(
+    semanticdbEnabled := true,
+    semanticdbIncludeInJar := true,
+    semanticdbVersion := sdbVersion
   )
 
 def isScala213Setting: Def.Initialize[Boolean] = Def.setting {
