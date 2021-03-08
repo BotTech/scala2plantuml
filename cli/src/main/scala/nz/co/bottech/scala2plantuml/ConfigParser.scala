@@ -3,6 +3,7 @@ package nz.co.bottech.scala2plantuml
 import scopt._
 
 import java.io.File
+import java.net.URI
 
 object ConfigParser {
 
@@ -104,7 +105,7 @@ object ConfigParser {
       opt[File]('j', "jar")
         .valueName("<jar>")
         .unbounded()
-        .action((jar, config) => config.addDirectory(jar))
+        .action((jar, config) => config.addFile(jar))
         .text(
           """JAR containing META-INF/semanticdb/**/*.semanticdb files.
             |
@@ -113,10 +114,10 @@ object ConfigParser {
             |""".stripMargin
         ),
       note(""),
-      opt[File]('u', "url")
+      opt[URI]('u', "url")
         .valueName("<url>")
         .unbounded()
-        .action((url, config) => config.addDirectory(url))
+        .action((url, config) => config.addURL(url.toURL))
         .text(
           """A URL to a JAR containing META-INF/semanticdb/**/*.semanticdb files.
             |

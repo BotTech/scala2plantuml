@@ -82,16 +82,15 @@ inThisBuild(
     // This needs to be set otherwise the GitHub workflow plugin gets confused about which
     // version to use for the publish job.
     scalaVersion := scala212,
-    versionPolicyIntention := Compatibility.BinaryAndSourceCompatible,
+    // TODO: Revert this after releasing 0.3.0.
+    //versionPolicyIntention := Compatibility.BinaryAndSourceCompatible,
+    versionPolicyIntention := Compatibility.None,
     versionScheme := Some("early-semver")
   )
 )
 
 val commonProjectSettings = List(
   isScala213 := isScala213Setting.value,
-  // Who cares about these. Forwards binary compatibility is used as an approximation for source
-  // backwards compatibility and missing classes isn't a problem.
-  mimaForwardIssueFilters += "0.2.0" -> List(ProblemFilters.exclude[MissingClassProblem]("nz.co.bottech.scala2plantuml.*")),
   name := s"${(LocalRootProject / name).value}-${name.value}",
   scalastyleFailOnError := true,
   scalastyleFailOnWarning := true,
@@ -110,14 +109,14 @@ val commonProjectSettings = List(
 val metaProjectSettings = List(
   mimaFailOnNoPrevious := false,
   mimaPreviousArtifacts := Set.empty,
-  publish / skip := true
+  publish / skip := true,
+  versionPolicyCheck := Def.unit(())
 )
 
 lazy val root = (project in file("."))
   .aggregate(cli, core, docs, example, integrationTests, sbtProject)
   .settings(metaProjectSettings)
   .settings(
-    crossScalaVersions := supportedScalaVersions,
     name := "scala2plantuml",
     // Workaround for https://github.com/olafurpg/sbt-ci-release/issues/181
     // These have to go on the root project.
@@ -158,6 +157,10 @@ lazy val cli = project
       "ch.qos.logback"    % "logback-core"    % logbackVersion,
       "com.github.scopt" %% "scopt"           % scoptVersion,
       "org.slf4j"         % "slf4j-api"       % slf4jVersion
+    ),
+    mimaForwardIssueFilters += "0.2.0" -> List(
+      // This is private so no harm done.
+      ProblemFilters.exclude[MissingClassProblem]("nz.co.bottech.scala2plantuml.ConfigParser$Terminated$")
     )
   )
 
@@ -211,7 +214,7 @@ lazy val sbtProject = (project in file("sbt"))
 lazy val docs = (project in (file("meta") / "docs"))
   // Include build info here so that we can override the version.
   .enablePlugins(BuildInfoPlugin, MdocPlugin)
-  .dependsOn(cli)
+  .dependsOn(cli, example)
   .settings(metaProjectSettings)
   .settings(
     // We use a different version setting so that it may depend on versionPolicyPreviousVersions
@@ -226,7 +229,8 @@ lazy val docs = (project in (file("meta") / "docs"))
     },
     mdocOut := (ThisBuild / baseDirectory).value,
     mdocVariables := Map(
-      "VERSION" -> (mdoc / version).value
+      "VERSION"       -> (mdoc / version).value,
+      "SCALA_VERSION" -> scalaMajorMinorVersion.value
     ),
     unusedCompileDependenciesFilter -= moduleFilter("org.scalameta", "mdoc*"),
     mdoc / version := versionPolicyPreviousVersions.value.lastOption.getOrElse(version.value)
@@ -237,8 +241,16 @@ lazy val example = project
   .settings(
     semanticdbEnabled := true,
     semanticdbIncludeInJar := true,
-    semanticdbVersion := sdbVersion
+    semanticdbVersion := sdbVersion,
+    versionPolicyCheck := Def.unit(())
   )
+
+def scalaMajorMinorVersion: Def.Initialize[String] = Def.setting {
+  CrossVersion.partialVersion(scala213) match {
+    case Some((major, minor)) => s"$major.$minor"
+    case _                    => throw new IllegalArgumentException("scalaVersion is malformed.")
+  }
+}
 
 def isScala213Setting: Def.Initialize[Boolean] = Def.setting {
   CrossVersion.partialVersion(scalaVersion.value) match {
