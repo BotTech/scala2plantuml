@@ -52,27 +52,15 @@ jobs:
       - name: Check that workflows are up to date
         run: sbt ++${{ matrix.scala }} githubWorkflowCheck
 
-      - name: Check formatting and style
-        run: sbt ++${{ matrix.scala }} scalafmtCheckAll scalastyle
-
-      - name: Check version adheres to the policy
-        run: sbt ++${{ matrix.scala }} versionPolicyCheck
-
-      - name: Check documentation has been generated
-        run: sbt ++${{ matrix.scala }} mdocCheck
-
-      - name: Check dependencies
-        run: sbt ++${{ matrix.scala }} evicted undeclaredCompileDependenciesTest unusedCompileDependenciesTest dependencyCheckAggregate
-
-      - name: Build and test
-        run: sbt ++${{ matrix.scala }} test
+      - name: Build, test and check libraries
+        run: sbt ++${{ matrix.scala }} check
 
       - name: Build and test sbt plugin
         if: matrix.scala == '2.12.13'
         run: sbt ++${{ matrix.scala }} scripted
 
       - name: Compress target directories
-        run: tar cf targets.tar sbt/target target doc-templates/target cli/target core/target project/target
+        run: tar cf targets.tar sbt/target meta/integration-tests/target target meta/docs/target cli/target core/target example/target project/target
 
       - name: Upload target directories
         uses: actions/upload-artifact@v2

@@ -14,7 +14,8 @@ final case class Config(
     sourceRoots: Vector[String] = Vector("src/main/scala"),
     outputFile: Option[File] = None,
     logInColour: Boolean = true,
-    logLevel: Int = 0) {
+    logLevel: Int = 0,
+    maxLevel: Option[Int] = None) {
 
   def addInclude(pattern: String): Config =
     copy(includes = includes + pattern)
