@@ -26,7 +26,7 @@ nz.co.bottech.scala2plantuml.Scala2PlantUML.main(Array("--project", "example", "
 println("```")
 ```
 
-![Example Class Diagram](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.github.com/BotTech/scala2plantuml/main/example/example.md)
+![Example Class Diagram](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/BotTech/scala2plantuml/main/example/example.md)
 
 ## sbt
 
