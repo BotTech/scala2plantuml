@@ -11,6 +11,23 @@ It comes as a standalone library, a CLI tool and an sbt plugin.
 Scala2PlantUML consumes [SemanticDB] files so you will need to know how to create those or simply follow the sbt setup
 instructions below.
 
+## Example
+
+```shell
+scala2plantuml \
+  --url 'https://repo1.maven.org/maven2/nz/co/bottech/scala2plantuml-example_@SCALA_VERSION@/@VERSION@/scala2plantuml-example_@SCALA_VERSION@-@VERSION@.jar'\
+  --project example \
+  "nz/co/bottech/scala2plantuml/example/Main."
+```
+
+```scala mdoc:passthrough
+println("```text")
+nz.co.bottech.scala2plantuml.Scala2PlantUML.main(Array("--project", "example", "nz/co/bottech/scala2plantuml/example/Main."))
+println("```")
+```
+
+![Example Class Diagram](http://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.github.com/BotTech/scala2plantuml/main/example/example.md)
+
 ## sbt
 
 ### Enable SemanticDB
@@ -40,6 +57,21 @@ Create `~/.sbt/1.0/plugins/scala2PlantUML.sbt` containing:
 addSbtPlugin("nz.co.bottech" % "sbt-scala2plantuml" % "@VERSION@")
 ```
 
+### Generate the Diagram
+
+Run the `scala2PlantUML` task from sbt:
+
+```sbt
+scala2PlantUML "com/example/Foo#"
+```
+
+This accepts the following arguments:
+- `--include`
+- `--exclude`
+- `--output`
+
+Refer to the [CLI Usage](#usage) for the definition of these arguments.
+
 ## CLI
 
 ### Install
@@ -65,6 +97,18 @@ println("```")
 ## Library
 
 > 🚧 TODO: Document Library.
+
+## Limitations
+
+- Only class diagrams are supported.
+- Only inheritance or aggregations are supported, compositions are shown as aggregations.
+- Aggregations are shown between types not between fields. There is a [bug][namespaced field links] in PlantUML which
+  prevents us from being able to do this reliably.
+- There is no reliable way to determine the path to a SemanticDB file from any symbol.
+  If Scala2PlantUML is unable to find your symbols then the following may help:
+  - Only have a single top level type in each file.
+  - Ensure that the file name matches the type name.
+  - Nest any subclasses of a sealed class within the companion object of the sealed class.
 
 [coursier]: https://get-coursier.io/docs/cli-install
 [plantuml]: https://plantuml.com/
