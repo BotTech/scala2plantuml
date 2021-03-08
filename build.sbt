@@ -1,10 +1,12 @@
+import com.typesafe.tools.mima.core._
+
 val scala212               = "2.12.13"
 val scala213               = "2.13.4"
 val supportedScalaVersions = List(scala212, scala213)
 
 val logbackVersion                      = "1.2.3"
 val scalaCollectionCompatibilityVersion = "2.4.2"
-val scoptVersion                        = "4.0.0"
+val scoptVersion                        = "4.0.1"
 val sdbVersion                          = "4.4.10"
 val slf4jVersion                        = "1.7.30"
 val utestVersion                        = "0.7.7"
@@ -75,7 +77,7 @@ inThisBuild(
       )
     ),
     githubWorkflowPublishTargetBranches := List(RefPredicate.StartsWith(Ref.Tag("v"))),
-    githubWorkflowTargetTags ++= Seq("v*"),
+    githubWorkflowTargetTags ++= List("v*"),
     pgpSigningKey := Some("0x8DB7DFA142551359!"),
     // This needs to be set otherwise the GitHub workflow plugin gets confused about which
     // version to use for the publish job.
@@ -87,6 +89,9 @@ inThisBuild(
 
 val commonProjectSettings = List(
   isScala213 := isScala213Setting.value,
+  // Who cares about these. Forwards binary compatibility is used as an approximation for source
+  // backwards compatibility and missing classes isn't a problem.
+  mimaForwardIssueFilters += "0.2.0" -> List(ProblemFilters.exclude[MissingClassProblem]("nz.co.bottech.scala2plantuml.*")),
   name := s"${(LocalRootProject / name).value}-${name.value}",
   scalastyleFailOnError := true,
   scalastyleFailOnWarning := true,
@@ -109,7 +114,7 @@ val metaProjectSettings = List(
 )
 
 lazy val root = (project in file("."))
-  .aggregate(cli, core, docs, example, sbtProject)
+  .aggregate(cli, core, docs, example, integrationTests, sbtProject)
   .settings(metaProjectSettings)
   .settings(
     crossScalaVersions := supportedScalaVersions,
@@ -156,6 +161,18 @@ lazy val cli = project
     )
   )
 
+// Use a separate project rather than a configuration to get IntelliJ support.
+lazy val integrationTests = (project in (file("meta") / "integration-tests"))
+  .settings(metaProjectSettings)
+  .settings(
+    libraryDependencies ++= List(
+      "com.lihaoyi" %% "utest" % utestVersion % Test
+    ),
+    testFrameworks += new TestFramework("utest.runner.Framework"),
+    Test / fork := true,
+    Test / javaOptions += s"-Dit.classpath=${(cli / Compile / fullClasspathAsJars).value.map(_.data).mkString(":")}"
+  )
+
 lazy val sbtProject = (project in file("sbt"))
   .dependsOn(core)
   .enablePlugins(SbtPlugin)
@@ -191,7 +208,7 @@ lazy val sbtProject = (project in file("sbt"))
     scriptedLaunchOpts += s"-Dplugin.version=${version.value}"
   )
 
-lazy val docs = (project in file("meta/docs"))
+lazy val docs = (project in (file("meta") / "docs"))
   // Include build info here so that we can override the version.
   .enablePlugins(BuildInfoPlugin, MdocPlugin)
   .dependsOn(cli)
