@@ -1,3 +1,5 @@
+import com.typesafe.tools.mima.core._
+
 val scala212               = "2.12.13"
 val scala213               = "2.13.4"
 val supportedScalaVersions = List(scala212, scala213)
@@ -75,7 +77,7 @@ inThisBuild(
       )
     ),
     githubWorkflowPublishTargetBranches := List(RefPredicate.StartsWith(Ref.Tag("v"))),
-    githubWorkflowTargetTags ++= Seq("v*"),
+    githubWorkflowTargetTags ++= List("v*"),
     pgpSigningKey := Some("0x8DB7DFA142551359!"),
     // This needs to be set otherwise the GitHub workflow plugin gets confused about which
     // version to use for the publish job.
@@ -87,6 +89,9 @@ inThisBuild(
 
 val commonProjectSettings = List(
   isScala213 := isScala213Setting.value,
+  // Who cares about these. Forwards binary compatibility is used as an approximation for source
+  // backwards compatibility and missing classes isn't a problem.
+  mimaForwardIssueFilters += "0.2.0" -> List(ProblemFilters.exclude[MissingClassProblem]("nz.co.bottech.scala2plantuml.*")),
   name := s"${(LocalRootProject / name).value}-${name.value}",
   scalastyleFailOnError := true,
   scalastyleFailOnWarning := true,
