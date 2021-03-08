@@ -76,7 +76,7 @@ inThisBuild(
         )
       )
     ),
-    githubWorkflowPublishTargetBranches := List(RefPredicate.StartsWith(Ref.Tag("v"))),
+    githubWorkflowPublishTargetBranches += RefPredicate.StartsWith(Ref.Tag("v")),
     githubWorkflowTargetTags ++= List("v*"),
     pgpSigningKey := Some("0x8DB7DFA142551359!"),
     // This needs to be set otherwise the GitHub workflow plugin gets confused about which
