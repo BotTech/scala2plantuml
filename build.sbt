@@ -109,7 +109,7 @@ val metaProjectSettings = List(
 )
 
 lazy val root = (project in file("."))
-  .aggregate(cli, core, docs, example, sbtProject)
+  .aggregate(cli, core, docs, example, integrationTests, sbtProject)
   .settings(metaProjectSettings)
   .settings(
     crossScalaVersions := supportedScalaVersions,
@@ -156,6 +156,18 @@ lazy val cli = project
     )
   )
 
+// Use a separate project rather than a configuration to get IntelliJ support.
+lazy val integrationTests = (project in (file("meta") / "integration-tests"))
+  .settings(metaProjectSettings)
+  .settings(
+    libraryDependencies ++= List(
+      "com.lihaoyi" %% "utest" % utestVersion % Test
+    ),
+    testFrameworks += new TestFramework("utest.runner.Framework"),
+    Test / fork := true,
+    Test / javaOptions += s"-Dit.classpath=${(cli / Compile / fullClasspathAsJars).value.map(_.data).mkString(":")}"
+  )
+
 lazy val sbtProject = (project in file("sbt"))
   .dependsOn(core)
   .enablePlugins(SbtPlugin)
@@ -191,7 +203,7 @@ lazy val sbtProject = (project in file("sbt"))
     scriptedLaunchOpts += s"-Dplugin.version=${version.value}"
   )
 
-lazy val docs = (project in file("meta/docs"))
+lazy val docs = (project in (file("meta") / "docs"))
   // Include build info here so that we can override the version.
   .enablePlugins(BuildInfoPlugin, MdocPlugin)
   .dependsOn(cli)
