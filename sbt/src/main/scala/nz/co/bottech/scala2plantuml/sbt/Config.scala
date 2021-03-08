@@ -6,12 +6,14 @@ import java.io.File
 import java.net.URL
 
 // TODO: Refactor the common code between here and the CLI.
+@SuppressWarnings(Array("org.wartremover.warts.DefaultArguments"))
 final case class Config(
     symbol: String,
     outputFile: File,
     includes: Set[String],
     excludes: Set[String],
-    urls: Vector[URL]) {
+    urls: Vector[URL],
+    maxLevel: Option[Int] = None) {
 
   def replaceOutputFile(file: String): Config =
     replaceOutputFile(new File(file))
@@ -38,6 +40,9 @@ final case class Config(
 
   def addURL(url: URL): Config =
     copy(urls = urls :+ url)
+
+  def setMaxLevel(level: Int): Config =
+    copy(maxLevel = Some(level))
 
   def ignore: String => Boolean = {
     val includesWithDefault = if (includes.isEmpty) Set("**") else includes

@@ -34,18 +34,18 @@ object NestedTypeTests extends TestSuite with ClassDiagramTests {
           |}""".stripMargin
       )
     }
+    // TODO: This should go in a separate suite of tests regarding ordering.
     test("nested class with fields unsorted") {
       success(
         "OuterClassWithFields#",
-        """class "OuterClassWithFields#InnerClass" {
+        """class OuterClassWithFields {
+          |  + {field} a
+          |}
+          |class "OuterClassWithFields#InnerClass" {
           |  + {field} b
           |}
           |class OuterClassWithFields {
           |  + {field} c
-          |}
-          |class "OuterClassWithFields#InnerClass"
-          |class OuterClassWithFields {
-          |  + {field} a
           |}""".stripMargin,
         options = testOptions.copy(sorting = Options.Unsorted)
       )
