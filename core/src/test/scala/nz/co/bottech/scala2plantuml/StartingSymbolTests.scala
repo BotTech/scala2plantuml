@@ -1,6 +1,6 @@
 package nz.co.bottech.scala2plantuml
 
-import utest.{TestSuite, Tests, test}
+import utest.{test, TestSuite, Tests}
 
 object StartingSymbolTests extends TestSuite with ClassDiagramTests {
 
@@ -8,10 +8,12 @@ object StartingSymbolTests extends TestSuite with ClassDiagramTests {
 
   val tests: Tests = Tests {
     test("method") {
-      success("Foo.apply().",
+      success(
+        "Foo.apply().",
         """class Foo {
           |  + {static} {method} apply
-          |}""".stripMargin)
+          |}""".stripMargin
+      )
     }
   }
 }
