@@ -15,7 +15,7 @@ instructions below.
 
 ```shell
 scala2plantuml \
-  --url 'https://repo1.maven.org/maven2/nz/co/bottech/scala2plantuml-example_2.13/0.2.0/scala2plantuml-example_2.13-0.2.0.jar'\
+  --url 'https://repo1.maven.org/maven2/nz/co/bottech/scala2plantuml-example_2.13/0.3.0/scala2plantuml-example_2.13-0.3.0.jar'\
   --project example \
   "nz/co/bottech/scala2plantuml/example/Main."
 ```
@@ -71,7 +71,7 @@ For most use cases you should add Scala2PlantUML as a global plugin since your b
 Create `~/.sbt/1.0/plugins/scala2PlantUML.sbt` containing:
 
 ```text
-addSbtPlugin("nz.co.bottech" % "sbt-scala2plantuml" % "0.2.0")
+addSbtPlugin("nz.co.bottech" % "sbt-scala2plantuml" % "0.3.0")
 ```
 
 ### Generate the Diagram
@@ -106,7 +106,7 @@ scala2plantuml --help
 ```
 
 ```text
-Scala2PlantUML version 0.2.0
+Scala2PlantUML version 0.3.0
 Usage: scala2plantuml [options] symbol
 
 Scala2PlantUML generates PlantUML Class Diagrams from Scala SemanticDB files.

@@ -84,9 +84,7 @@ inThisBuild(
     // This needs to be set otherwise the GitHub workflow plugin gets confused about which
     // version to use for the publish job.
     scalaVersion := scala212,
-    // TODO: Revert this after releasing 0.3.0.
-    //versionPolicyIntention := Compatibility.BinaryAndSourceCompatible,
-    versionPolicyIntention := Compatibility.None,
+    versionPolicyIntention := Compatibility.BinaryAndSourceCompatible,
     versionScheme := Some("early-semver")
   )
 )
