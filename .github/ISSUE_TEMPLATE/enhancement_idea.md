@@ -6,6 +6,8 @@ labels: enhancement, triage
 assignees:
 ---
 
+You may also want to discuss this in [Ideas](https://github.com/BotTech/scala2plantuml/discussions/categories/ideas).
+
 <!-- Thank you for taking the time to share your idea. -->
 <!-- Please provide as much information as you can. -->
 
