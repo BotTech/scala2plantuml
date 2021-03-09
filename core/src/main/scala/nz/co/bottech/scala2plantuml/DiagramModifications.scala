@@ -15,6 +15,7 @@ private[scala2plantuml] object DiagramModifications {
 
     import elementsWithNames._
 
+    // TODO: This should be redundant.
     def removeHidden(options: Options): ElementsWithNames =
       options.hide match {
         case Options.HideMatching(patterns) =>
@@ -104,16 +105,7 @@ private[scala2plantuml] object DiagramModifications {
                 val owner = member.ownerSymbol
                 if (previousType.exists(_.symbol == owner)) loop(tail, previousType, acc :+ member)
                 else {
-                  def createClass =
-                    Class(
-                      scalaTypeName(symbolToScalaIdentifier(owner)),
-                      owner,
-                      isObject = false,
-                      isAbstract = false,
-                      Seq.empty,
-                      Seq.empty
-                    )
-                  val ownerElement = types.getOrElse(owner, createClass)
+                  val ownerElement = types.getOrElse(owner, fakeOwner(owner))
                   loop(tail, Some(ownerElement), acc :+ ownerElement :+ member)
                 }
               case head +: tail =>
@@ -122,8 +114,31 @@ private[scala2plantuml] object DiagramModifications {
             }
           val newElements = loop(elements, None, Vector.empty)
           elementsWithNames.copy(elements = newElements)
-        case _ => elementsWithNames
+        case _ =>
+          // Even when unsorted there can be elements without parents, which typically occurs
+          // when the starting symbol is a member.
+          val types = elements.collect { case typ: Type =>
+            typ.symbol
+          }.toSet
+          val newElements = elements.flatMap {
+            case member: Member =>
+              val owner = member.ownerSymbol
+              if (types.contains(owner)) List(member)
+              else List(fakeOwner(owner), member)
+            case element => List(element)
+          }
+          elementsWithNames.copy(elements = newElements)
       }
+
+    private def fakeOwner(symbol: String) =
+      Class(
+        scalaTypeName(symbolToScalaIdentifier(symbol)),
+        symbol,
+        isObject = symbol.endsWith("."),
+        isAbstract = false,
+        Seq.empty,
+        Seq.empty
+      )
 
     def calculateNames(options: Options): ElementsWithNames = {
       assert(names.isEmpty)
