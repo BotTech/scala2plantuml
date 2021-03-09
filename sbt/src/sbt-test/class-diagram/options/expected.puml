@@ -1,0 +1,7 @@
+@startuml
+interface A extends B {
+  + {abstract} {method} a
+}
+interface B extends C
+interface C
+@enduml

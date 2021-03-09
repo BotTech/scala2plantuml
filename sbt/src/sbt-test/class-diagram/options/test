@@ -1,0 +1,2 @@
+> scala2PlantUML --max-level 3 --exclude "com/example/internal/**" --output "actual.puml" "com/example/A#"
+$ must-mirror expected.puml target/actual.puml

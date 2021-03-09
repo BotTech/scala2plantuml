@@ -18,7 +18,8 @@ object Scala2PlantUML {
       config.symbol,
       config.prefixes(projects, sourceRoots),
       config.ignore,
-      classLoader(config)
+      classLoader(config),
+      config.maxLevel
     )
     val file = config.outputFile
     Option(file.getParentFile).foreach(_.mkdirs())

@@ -7,7 +7,7 @@ import sbt.file
 
 private[sbt] object Scala2PlantUMLParser {
 
-  private val SymbolParser = token(StringBasic, "symbol")
+  private val SymbolParser = Space ~> token(StringBasic, "symbol")
 
   private val IncludeParser    = optionStringParser("-i", "--include", "pattern", _.addInclude(_))
   private val ExcludeParser    = optionStringParser("-e", "--exclude", "pattern", _.addExclude(_))
@@ -37,14 +37,14 @@ private[sbt] object Scala2PlantUMLParser {
       parser: Parser[A],
       f: (Config, A) => Config
     ) =
-    (token(literal(short) | long) ~> token(Space) ~> token(parser, label)).map(a => (c: Config) => f(c, a))
+    Space ~> (token(literal(short) | long) ~> token(Space) ~> token(parser, label)).map(a => (c: Config) => f(c, a))
 
   def apply(): Parser[Config] = {
     // TODO: Add .puml extension auto complete.
     val options = OutputFileParser | MaxLevelParser | IncludeParser | ExcludeParser
     // TODO: Get example symbols.
     // FIXME: OutputFileParser and MaxLevelParser should only be allowed at most once.
-    val parser = Space ~> options.* ~ SymbolParser ~ options.*
+    val parser = options.* ~ SymbolParser ~ options.*
     parser.map { case ((optionsBefore, symbol), optionsAfter) =>
       def configure(config: Config, f: Config => Config) = f(config)
       val outputFile                                     = file(s"${symbolToScalaIdentifier(symbol)}.puml")
