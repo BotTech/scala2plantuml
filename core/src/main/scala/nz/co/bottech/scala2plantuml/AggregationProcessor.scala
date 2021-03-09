@@ -89,6 +89,7 @@ private[scala2plantuml] object AggregationProcessor {
     aggregates.filterNot { symbol =>
       symbol == aggregator ||
       TerminalTypes.contains(symbol) ||
+      !symbolIndex.indexOf(symbol) ||
       nonClassSymbol(symbol, symbolIndex)
     }.map(Aggregation(aggregator, _))
 

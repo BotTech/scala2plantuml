@@ -116,7 +116,10 @@ private[scala2plantuml] object SymbolProcessor {
     import symbolInformation.{displayName, symbol}
     val parentSymbols =
       if (excludeParents) Seq.empty
-      else clazz.parents.flatMap(typeSymbols(_, includeArguments = false))
+      else
+        clazz.parents
+          .flatMap(typeSymbols(_, includeArguments = false))
+          .filter(symbolIndex.indexOf)
     val typeParameters = optionalScopeTypeParameters(clazz.typeParameters, symbolIndex)
     if (isTrait(symbolInformation))
       Interface(displayName, symbol, parentSymbols, typeParameters)
