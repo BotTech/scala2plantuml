@@ -206,6 +206,7 @@ lazy val sbtProject = (project in file("sbt"))
     },
     name := s"sbt-${(LocalRootProject / name).value}",
     scriptedBufferLog := false,
+    // TODO: Remove this once https://github.com/sbt/sbt/pull/6351 is released.
     scriptedDependencies := {
       Def.unit(scriptedDependencies.value)
       Def.unit(publishLocal.all(ScopeFilter(projects = inDependencies(ThisProject, includeRoot = false))).value)
