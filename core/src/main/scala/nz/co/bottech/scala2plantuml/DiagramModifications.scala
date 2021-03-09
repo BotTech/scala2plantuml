@@ -129,7 +129,6 @@ private[scala2plantuml] object DiagramModifications {
       assert(names.isEmpty)
       def typeParameterSymbols(parameters: Seq[TypeParameter]): Seq[String] =
         parameters.flatMap(parameter => parameter.symbol +: parameter.parentSymbols)
-      // TODO: This might be overkill. All the symbols we care about should be types.
       def elementSymbols(element: ClassDiagramElement): Seq[String] =
         element match {
           case typ: Type                => typ.symbol +: typ.parentSymbols ++: typeParameterSymbols(typ.typeParameters)
@@ -146,8 +145,8 @@ private[scala2plantuml] object DiagramModifications {
               symbolName(parameter.symbol) +: parameter.parentSymbols.map(symbolName)
             }
             elementName +: typeParameterNames
-          case member: Member => Seq(member.symbol -> member.displayName)
-          case _: Aggregation => Seq.empty
+          case member: Member           => Seq(member.symbol -> member.displayName)
+          case aggregation: Aggregation => Seq(symbolName(aggregation.aggregator), symbolName(aggregation.aggregated))
         }
       }
       val newNames = options.naming match {
