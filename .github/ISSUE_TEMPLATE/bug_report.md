@@ -1,6 +1,6 @@
 ---
-name: \U0001F41B Bug Report
-about: Something isn't working as expected \U0001F914.
+name: "\U0001F41B Bug Report"
+about: "Something isn't working as expected \U0001F914."
 title: What is the impact?
 labels: bug, triage
 assignees:

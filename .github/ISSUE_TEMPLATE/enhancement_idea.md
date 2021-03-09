@@ -1,6 +1,6 @@
 ---
-name: \U0001F680 Enhancement Idea
-about: I have an idea \U0001F4AD.
+name: "\U0001F680 Enhancement Idea"
+about: "I have an idea \U0001F4AD."
 title: What does this enable?
 labels: enhancement, triage
 assignees:
