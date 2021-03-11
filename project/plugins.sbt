@@ -9,9 +9,3 @@ addSbtPlugin("org.scalameta"             % "sbt-mdoc"                  % "2.2.18
 addSbtPlugin("org.scalameta"             % "sbt-scalafmt"              % "2.4.2")
 addSbtPlugin("org.scalastyle"           %% "scalastyle-sbt-plugin"     % "1.0.0")
 addSbtPlugin("org.wartremover"           % "sbt-wartremover"           % "2.4.13")
-
-lazy val root = (project in file(".")).dependsOn(sonatypePlugin)
-
-lazy val sonatypePlugin = RootProject(
-  uri("git://github.com/steinybot/sbt-sonatype#5a0ace0551b5d58debbf4aae4a1b5f9b5d888ef1")
-)
