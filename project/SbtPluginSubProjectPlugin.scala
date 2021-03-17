@@ -7,6 +7,7 @@ import sbt.ScriptedPlugin.autoImport.scripted
 import sbt._
 import sbt.plugins.SbtPlugin
 import sbtversionpolicy.SbtVersionPolicyMima
+import sbtversionpolicy.SbtVersionPolicyPlugin.autoImport.versionPolicyDependencySchemes
 
 // This is all the crazy hacks to get cross compiling working with an sub-project that is an sbt plugin.
 object SbtPluginSubProjectPlugin extends AutoPlugin {
@@ -23,6 +24,7 @@ object SbtPluginSubProjectPlugin extends AutoPlugin {
   override def projectSettings: Seq[Def.Setting[_]] =
     List(
       crossScalaVersions := Nil,
+      mimaPreviousArtifacts := defaultIfCannotBuild(mimaPreviousArtifacts, Set.empty[ModuleID]).value,
       // Remove all project dependencies for Scala 2.13 as they will not resolve when cross building.
       projectDependencies := taskDefaultIfSkipped(projectDependencies, Nil).value,
       scripted := inputDefaultIfSkipped(scripted, ()).evaluated,
@@ -32,7 +34,10 @@ object SbtPluginSubProjectPlugin extends AutoPlugin {
       // Skip everything else otherwise it will just fail.
       skip := !spspCanBuild.value,
       undeclaredCompileDependenciesFilter -= moduleFilter(),
-      mimaPreviousArtifacts := defaultIfCannotBuild(mimaPreviousArtifacts, Set.empty[ModuleID]).value
+      // These transitive dependencies that have been "vendored" by sbt appear as though they are
+      // pre-release as they contain build metadata.
+      // Trust that sbt correctly manages its own version policy in accordance with its dependencies.
+      versionPolicyDependencySchemes += "org.scala-sbt.jline" % "*" % "always"
     )
 
   def defaultIfCannotBuild[A](setting: Def.Initialize[A], default: => A): Def.Initialize[A] =
