@@ -24,7 +24,7 @@ private[scala2plantuml] class SemanticDBLoader(prefixes: Seq[String], classLoade
             case Left(error)  => loop(tail, errors ++ error)
             case Right(value) => Right(value)
           }
-        case Seq() => Left(errors)
+        case _ => Left(errors)
       }
     semanticdbPath(symbol).flatMap { path =>
       val paths =

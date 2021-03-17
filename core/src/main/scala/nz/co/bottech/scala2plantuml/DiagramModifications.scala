@@ -79,7 +79,7 @@ private[scala2plantuml] object DiagramModifications {
             loop(tail, aggregations + aggregation, acc :+ aggregation)
           case head +: tail =>
             loop(tail, aggregations, acc :+ head)
-          case Seq() => acc
+          case _ => acc
         }
       val newElements = loop(elements, Set.empty, Vector.empty)
       elementsWithNames.copy(elements = newElements)
