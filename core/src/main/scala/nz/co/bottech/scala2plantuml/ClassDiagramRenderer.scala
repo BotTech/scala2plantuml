@@ -115,7 +115,7 @@ object ClassDiagramRenderer {
         case head +: tail =>
           val nextOuter = renderElement(head, previous, outer, writer, elementsWithNames.names)
           loop(tail, Some(head), nextOuter)
-        case Seq() =>
+        case _ =>
           if (outer.nonEmpty) writer.write("\n}")
           writer.write('\n')
       }
