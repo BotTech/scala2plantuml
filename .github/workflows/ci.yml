@@ -50,14 +50,26 @@ jobs:
           key: ${{ runner.os }}-sbt-cache-v2-${{ hashFiles('**/*.sbt') }}-${{ hashFiles('project/build.properties') }}
 
       - name: Check that workflows are up to date
-        run: sbt ++${{ matrix.scala }} githubWorkflowCheck
+        run: sbtn ++${{ matrix.scala }} githubWorkflowCheck
 
-      - name: Build, test and check libraries
-        run: sbt ++${{ matrix.scala }} check
+      - name: Check formatting and style
+        run: sbtn ++${{ matrix.scala }} scalafmtCheckAll scalastyle
+
+      - name: Check version adheres to the policy
+        run: sbtn ++${{ matrix.scala }} versionCheck versionPolicyCheck
+
+      - name: Check documentation has been generated
+        run: sbtn ++${{ matrix.scala }} 'docs/mdoc --check'
+
+      - name: Check dependencies
+        run: sbtn ++${{ matrix.scala }} evicted undeclaredCompileDependenciesTest unusedCompileDependenciesTest dependencyCheckAggregate
+
+      - name: Build and test
+        run: sbtn ++${{ matrix.scala }} test
 
       - name: Build and test sbt plugin
         if: matrix.scala == '2.12.13'
-        run: sbt ++${{ matrix.scala }} scripted
+        run: sbtn ++${{ matrix.scala }} scripted
 
       - name: Compress target directories
         run: tar cf targets.tar sbt/target meta/integration-tests/target target meta/docs/target cli/target core/target example/target project/target
@@ -126,4 +138,4 @@ jobs:
           PGP_SECRET: ${{ secrets.PGP_SECRET }}
           SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
           SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
-        run: sbt ++${{ matrix.scala }} ci-release
+        run: sbtn ++${{ matrix.scala }} ci-release
