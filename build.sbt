@@ -54,7 +54,7 @@ inThisBuild(
     licenses := List("MIT" -> url("https://github.com/BotTech/scala2plantuml/blob/main/LICENSE")),
     organization := "nz.co.bottech",
     organizationName := "BotTech",
-    githubWorkflowSbtCommand := "sbtn",
+    githubWorkflowSbtCommand := "sbt --client",
     githubWorkflowBuild := List(
       WorkflowStep.Sbt(List("scalafmtCheckAll", "scalastyle"), name = Some("Check formatting and style")),
       WorkflowStep.Sbt(List("versionCheck", "versionPolicyCheck"), name = Some("Check version adheres to the policy")),
