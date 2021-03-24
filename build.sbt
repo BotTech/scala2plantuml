@@ -54,8 +54,21 @@ inThisBuild(
     licenses := List("MIT" -> url("https://github.com/BotTech/scala2plantuml/blob/main/LICENSE")),
     organization := "nz.co.bottech",
     organizationName := "BotTech",
+    githubWorkflowSbtCommand := "sbt --client",
     githubWorkflowBuild := List(
-      WorkflowStep.Sbt(List("check"), name = Some("Build, test and check libraries")),
+      WorkflowStep.Sbt(List("scalafmtCheckAll", "scalastyle"), name = Some("Check formatting and style")),
+      WorkflowStep.Sbt(List("versionCheck", "versionPolicyCheck"), name = Some("Check version adheres to the policy")),
+      WorkflowStep.Sbt(List("docs/mdoc --check"), name = Some("Check documentation has been generated")),
+      WorkflowStep.Sbt(
+        List(
+          "evicted",
+          "undeclaredCompileDependenciesTest",
+          "unusedCompileDependenciesTest",
+          "dependencyCheckAggregate"
+        ),
+        name = Some("Check dependencies")
+      ),
+      WorkflowStep.Sbt(List("test"), name = Some("Build and test")),
       WorkflowStep.Sbt(
         List("scripted"),
         name = Some("Build and test sbt plugin"),
