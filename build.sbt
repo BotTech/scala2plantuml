@@ -8,7 +8,7 @@ val logbackVersion                      = "1.2.3"
 val scalaCollectionCompatibilityVersion = "2.4.2"
 val scoptVersion                        = "4.0.1"
 val sdbVersion                          = "4.4.10"
-val slf4jVersion                        = "1.7.30"
+val slf4jVersion                        = "1.7.31"
 val utestVersion                        = "0.7.7"
 
 addCommandAlias(
