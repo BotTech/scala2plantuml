@@ -4,4 +4,4 @@ sys.props.get("plugin.version") match {
                          |Specify this property using the scriptedLaunchOpts -D.""".stripMargin)
 }
 
-libraryDependencies += "com.lihaoyi" %% "utest" % "0.7.7"
+libraryDependencies += "com.lihaoyi" %% "utest" % "0.7.11"
