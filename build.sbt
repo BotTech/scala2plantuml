@@ -6,7 +6,7 @@ val supportedScalaVersions = List(scala212, scala213)
 
 val logbackVersion                      = "1.2.3"
 val scalaCollectionCompatibilityVersion = "2.4.2"
-val scoptVersion                        = "4.0.1"
+val scoptVersion                        = "4.1.0"
 val sdbVersion                          = "4.4.10"
 val slf4jVersion                        = "1.7.30"
 val utestVersion                        = "0.7.7"
