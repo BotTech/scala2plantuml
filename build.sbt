@@ -192,7 +192,7 @@ lazy val sbtProject = (project in file("sbt"))
           "org.scala-sbt" %% "completion"             % sbtVersion.value,
           "org.scala-sbt" %% "core-macros"            % sbtVersion.value,
           "org.scala-sbt" %% "io"                     % "1.4.0",
-          "org.scala-sbt" %% "librarymanagement-core" % "1.4.3",
+          "org.scala-sbt" %% "librarymanagement-core" % "1.10.1",
           "org.scala-sbt" %% "main"                   % sbtVersion.value,
           "org.scala-sbt" %% "main-settings"          % sbtVersion.value,
           "org.scala-sbt"  % "sbt"                    % sbtVersion.value,
