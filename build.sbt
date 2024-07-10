@@ -188,7 +188,7 @@ lazy val sbtProject = (project in file("sbt"))
         collectionsCompatibilityDependency.value ++ List(
           "org.scala-sbt" %% "collections"            % sbtVersion.value,
           "org.scala-sbt" %% "command"                % sbtVersion.value,
-          "org.scala-sbt"  % "compiler-interface"     % "1.4.4",
+          "org.scala-sbt"  % "compiler-interface"     % "1.10.1",
           "org.scala-sbt" %% "completion"             % sbtVersion.value,
           "org.scala-sbt" %% "core-macros"            % sbtVersion.value,
           "org.scala-sbt" %% "io"                     % "1.4.0",
